@@ -25,6 +25,7 @@ export default function Home() {
     <main className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
       <h1 className="text-3xl font-bold">🐾 dogmap</h1>
       <p className="text-gray-500">반려동물과 갈 수 있는 곳을 찾아보세요</p>
+      <Link href="/map" className="bg-green-600 text-white rounded px-4 py-2">지도 보기 🗺️</Link>
 
       {user ? (
         <div className="flex flex-col items-center gap-2">
