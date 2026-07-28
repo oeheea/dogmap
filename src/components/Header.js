@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 const NAV = [
   { href: '/map', label: '지도' },
+  { href: '/walk', label: '산책' },
   { href: '/browse', label: '둘러보기' },
   { href: '/community', label: '커뮤니티' },
   { href: '/feed', label: '피드' },
