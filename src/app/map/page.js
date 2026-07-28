@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
+const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
 export default function MapPage() {
   const router = useRouter()
@@ -13,6 +14,7 @@ export default function MapPage() {
   const mapObjRef = useRef(null)
   const placeMarkersRef = useRef([])
   const folderMarkersRef = useRef({})
+  const folderPlaceIdsRef = useRef({})
   const tempMarkerRef = useRef(null)
   const registerRef = useRef(false)
 
@@ -24,11 +26,13 @@ export default function MapPage() {
 
   const [folders, setFolders] = useState([])
   const [folderOn, setFolderOn] = useState({})
+  const [hiddenIds, setHiddenIds] = useState(new Set())
 
   const [showSave, setShowSave] = useState(false)
   const [saveFolders, setSaveFolders] = useState([])
   const [newFolder, setNewFolder] = useState('')
   const [newPublic, setNewPublic] = useState(false)
+  const [saveColor, setSaveColor] = useState('#3b82f6')
 
   const [register, setRegister] = useState(false)
   const [regPos, setRegPos] = useState(null)
@@ -77,12 +81,12 @@ export default function MapPage() {
     if (!map || !window.kakao) return
     placeMarkersRef.current.forEach((m) => m.setMap(null))
     placeMarkersRef.current = []
-    allPlaces.filter((p) => activeCat === '전체' || p.category === activeCat).forEach((p) => {
+    allPlaces.filter((p) => (activeCat === '전체' || p.category === activeCat) && !hiddenIds.has(p.id)).forEach((p) => {
       const marker = new window.kakao.maps.Marker({ position: new window.kakao.maps.LatLng(p.lat, p.lng), map })
       window.kakao.maps.event.addListener(marker, 'click', () => selectPlace(p))
       placeMarkersRef.current.push(marker)
     })
-  }, [allPlaces, activeCat])
+  }, [allPlaces, activeCat, hiddenIds])
 
   async function loadFolders(uid) {
     const { data } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', uid).order('created_at')
@@ -97,24 +101,42 @@ export default function MapPage() {
     setStats({ avg, count })
   }
 
+  function circleHtml(color, icon) {
+    return `<div style="width:32px;height:32px;background:${color};border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 1px 4px rgba(0,0,0,.4)">${icon}</div>`
+  }
+
+  function recomputeHidden() {
+    const s = new Set()
+    Object.values(folderPlaceIdsRef.current).forEach((ids) => ids.forEach((id) => s.add(id)))
+    setHiddenIds(s)
+  }
+
   function toggleFolder(folder) {
     const on = !folderOn[folder.id]
     setFolderOn((prev) => ({ ...prev, [folder.id]: on }))
     if (on) {
-      supabase.from('saved_places').select('places(*)').eq('folder_id', folder.id).then(({ data }) => {
-        const image = coloredPin(folder.color || '#3b82f6')
-        const markers = (data ?? []).filter((d) => d.places).map((d) => {
+      supabase.from('saved_places').select('color, places(*)').eq('folder_id', folder.id).then(({ data }) => {
+        const rows = (data ?? []).filter((d) => d.places)
+        const overlays = rows.map((d) => {
           const p = d.places
-          const marker = new window.kakao.maps.Marker({ position: new window.kakao.maps.LatLng(p.lat, p.lng), map: mapObjRef.current, image })
-          window.kakao.maps.event.addListener(marker, 'click', () => selectPlace(p))
-          return marker
+          const el = document.createElement('div')
+          el.style.cssText = 'cursor:pointer'
+          el.innerHTML = circleHtml(d.color || '#3b82f6', folder.icon || '📍')
+          const ov = new window.kakao.maps.CustomOverlay({ position: new window.kakao.maps.LatLng(p.lat, p.lng), content: el, xAnchor: 0.5, yAnchor: 0.5 })
+          ov.setMap(mapObjRef.current)
+          el.addEventListener('click', () => selectPlace(p))
+          return ov
         })
-        folderMarkersRef.current[folder.id] = markers
+        folderMarkersRef.current[folder.id] = overlays
+        folderPlaceIdsRef.current[folder.id] = rows.map((d) => d.places.id)
+        recomputeHidden()
       })
     } else {
       const ms = folderMarkersRef.current[folder.id] ?? []
-      ms.forEach((m) => m.setMap(null))
+      ms.forEach((o) => o.setMap(null))
       folderMarkersRef.current[folder.id] = []
+      delete folderPlaceIdsRef.current[folder.id]
+      recomputeHidden()
     }
   }
 
@@ -130,7 +152,7 @@ export default function MapPage() {
     setSaveFolders([...saveFolders, data]); setNewFolder(''); setNewPublic(false); loadFolders(user.id)
   }
   async function saveToFolder(folderId) {
-    const { error } = await supabase.from('saved_places').insert({ folder_id: folderId, place_id: selected.id })
+    const { error } = await supabase.from('saved_places').insert({ folder_id: folderId, place_id: selected.id, color: saveColor })
     if (error) { alert('저장 실패: ' + error.message); return }
     alert('저장했어요! 🐾'); setShowSave(false); loadFolders(user.id)
   }
@@ -241,6 +263,13 @@ export default function MapPage() {
               <div className="flex justify-between items-center mb-2">
                 <h2 className="font-bold">폴더에 저장</h2>
                 <button onClick={() => setShowSave(false)} className="text-gray-400">✕</button>
+              </div>
+              <p className="text-xs text-gray-500 mb-1">핀 색상</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {COLORS.map((c) => (
+                  <button key={c} onClick={() => setSaveColor(c)} className="w-7 h-7 rounded-full border-2"
+                    style={{ backgroundColor: c, borderColor: saveColor === c ? '#111' : 'transparent' }} />
+                ))}
               </div>
               <ul className="flex flex-col gap-1 max-h-40 overflow-y-auto mb-3">
                 {saveFolders.length === 0 && <li className="text-xs text-gray-500">아직 폴더가 없어요.</li>}
