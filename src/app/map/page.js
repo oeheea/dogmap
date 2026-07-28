@@ -8,6 +8,7 @@ import { formatAddress } from '@/lib/format'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
+const ICONS = ['📍', '⭐', '❤️', '🐶', '🐾', '☕', '🍽️', '🌳', '🏠', '🔥']
 
 export default function MapPage() {
   const router = useRouter()
@@ -18,6 +19,7 @@ export default function MapPage() {
   const folderPlaceIdsRef = useRef({})
   const tempMarkerRef = useRef(null)
   const registerRef = useRef(false)
+  const restoredRef = useRef(false)
 
   const [user, setUser] = useState(null)
   const [allPlaces, setAllPlaces] = useState([])
@@ -29,6 +31,7 @@ export default function MapPage() {
 
   const [folders, setFolders] = useState([])
   const [folderOn, setFolderOn] = useState({})
+  const [mapReady, setMapReady] = useState(false)
   const [subFolders, setSubFolders] = useState([])
   const [hiddenIds, setHiddenIds] = useState(new Set())
 
@@ -36,6 +39,7 @@ export default function MapPage() {
   const [saveFolders, setSaveFolders] = useState([])
   const [newFolder, setNewFolder] = useState('')
   const [newPublic, setNewPublic] = useState(false)
+  const [newIcon, setNewIcon] = useState('📍')
   const [saveColor, setSaveColor] = useState('#3b82f6')
 
   const [register, setRegister] = useState(false)
@@ -59,6 +63,7 @@ export default function MapPage() {
       window.kakao.maps.load(async () => {
         const map = new window.kakao.maps.Map(mapRef.current, { center: new window.kakao.maps.LatLng(37.5445, 127.0), level: 6 })
         mapObjRef.current = map
+        setMapReady(true)
         window.kakao.maps.event.addListener(map, 'click', async (e) => {
           if (!registerRef.current) return
           const latlng = e.latLng
@@ -93,6 +98,16 @@ export default function MapPage() {
       placeMarkersRef.current.push(marker)
     })
   }, [allPlaces, activeCat, hiddenIds])
+  useEffect(() => {
+    if (restoredRef.current) return
+    if (!mapReady) return
+    if (folders.length === 0 && subFolders.length === 0) return
+    restoredRef.current = true
+    let saved = {}
+    try { saved = JSON.parse(localStorage.getItem('folderOn') || '{}') } catch {}
+    setFolderOn(saved)
+    ;[...folders, ...subFolders].forEach((f) => { if (saved[f.id]) showFolder(f) })
+  }, [mapReady, folders, subFolders])
 
   async function loadFolders(uid) {
     const { data } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', uid).order('created_at')
@@ -131,33 +146,38 @@ export default function MapPage() {
     setHiddenIds(s)
   }
 
+  function showFolder(folder) {
+    supabase.from('saved_places').select('color, places(*)').eq('folder_id', folder.id).then(({ data }) => {
+      const rows = (data ?? []).filter((d) => d.places)
+      const overlays = rows.map((d) => {
+        const p = d.places
+        const el = document.createElement('div')
+        el.style.cssText = 'cursor:pointer'
+        el.innerHTML = circleHtml(d.color || '#3b82f6', folder.icon || '📍')
+        const ov = new window.kakao.maps.CustomOverlay({ position: new window.kakao.maps.LatLng(p.lat, p.lng), content: el, xAnchor: 0.5, yAnchor: 0.5 })
+        ov.setMap(mapObjRef.current)
+        el.addEventListener('click', () => selectPlace(p))
+        return ov
+      })
+      folderMarkersRef.current[folder.id] = overlays
+      folderPlaceIdsRef.current[folder.id] = rows.map((d) => d.places.id)
+      recomputeHidden()
+    })
+  }
+  function hideFolder(id) {
+    const ms = folderMarkersRef.current[id] ?? []
+    ms.forEach((o) => o.setMap(null))
+    folderMarkersRef.current[id] = []
+    delete folderPlaceIdsRef.current[id]
+    recomputeHidden()
+  }
   function toggleFolder(folder) {
     const on = !folderOn[folder.id]
-    setFolderOn((prev) => ({ ...prev, [folder.id]: on }))
-    if (on) {
-      supabase.from('saved_places').select('color, places(*)').eq('folder_id', folder.id).then(({ data }) => {
-        const rows = (data ?? []).filter((d) => d.places)
-        const overlays = rows.map((d) => {
-          const p = d.places
-          const el = document.createElement('div')
-          el.style.cssText = 'cursor:pointer'
-          el.innerHTML = circleHtml(d.color || '#3b82f6', folder.icon || '📍')
-          const ov = new window.kakao.maps.CustomOverlay({ position: new window.kakao.maps.LatLng(p.lat, p.lng), content: el, xAnchor: 0.5, yAnchor: 0.5 })
-          ov.setMap(mapObjRef.current)
-          el.addEventListener('click', () => selectPlace(p))
-          return ov
-        })
-        folderMarkersRef.current[folder.id] = overlays
-        folderPlaceIdsRef.current[folder.id] = rows.map((d) => d.places.id)
-        recomputeHidden()
-      })
-    } else {
-      const ms = folderMarkersRef.current[folder.id] ?? []
-      ms.forEach((o) => o.setMap(null))
-      folderMarkersRef.current[folder.id] = []
-      delete folderPlaceIdsRef.current[folder.id]
-      recomputeHidden()
-    }
+    const next = { ...folderOn, [folder.id]: on }
+    setFolderOn(next)
+    localStorage.setItem('folderOn', JSON.stringify(next))
+    if (on) showFolder(folder)
+    else hideFolder(folder.id)
   }
 
   async function openSave() {
@@ -167,9 +187,9 @@ export default function MapPage() {
   }
   async function createFolder() {
     if (!newFolder.trim()) return
-    const { data, error } = await supabase.from('folders').insert({ user_id: user.id, name: newFolder, is_public: newPublic }).select().single()
+    const { data, error } = await supabase.from('folders').insert({ user_id: user.id, name: newFolder, is_public: newPublic, icon: newIcon }).select().single()
     if (error) { alert(error.message); return }
-    setSaveFolders([...saveFolders, data]); setNewFolder(''); setNewPublic(false); loadFolders(user.id)
+    setSaveFolders([...saveFolders, data]); setNewFolder(''); setNewPublic(false); setNewIcon('📍'); loadFolders(user.id)
   }
   async function saveToFolder(folderId) {
     const { error } = await supabase.from('saved_places').insert({ folder_id: folderId, place_id: selected.id, color: saveColor })
@@ -254,7 +274,7 @@ export default function MapPage() {
               {folders.map((f) => (
                 <li key={f.id} className="flex items-center justify-between">
                   <Link href={`/folder/${f.id}`} className="flex items-center gap-2 min-w-0 hover:opacity-70">
-                    <span className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs" style={{ backgroundColor: f.color || '#3b82f6' }}>{f.icon || '📍'}</span>
+                    <span className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-sm bg-gray-50 border border-gray-200">{f.icon || '📍'}</span>
                     <div className="min-w-0">
                       <div className="text-sm truncate">{f.name}</div>
                       <div className="text-[11px] text-gray-400">{f.is_public ? '🌐 공개' : '🔒 비공개'} · {f.saved_places?.[0]?.count ?? 0}개</div>
@@ -274,7 +294,7 @@ export default function MapPage() {
                   {subFolders.map((f) => (
                     <li key={f.id} className="flex items-center justify-between">
                       <Link href={`/folder/${f.id}`} className="flex items-center gap-2 min-w-0 hover:opacity-70">
-                        <span className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs bg-gray-100">{f.icon || '📍'}</span>
+                        <span className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-sm bg-gray-50 border border-gray-200">{f.icon || '📍'}</span>
                         <div className="min-w-0">
                           <div className="text-sm truncate">{f.name}</div>
                           <div className="text-[11px] text-gray-400">구독 · {f.saved_places?.[0]?.count ?? 0}개</div>
@@ -384,6 +404,12 @@ export default function MapPage() {
               </ul>
               <div className="border-t pt-3 flex flex-col gap-2">
                 <input value={newFolder} onChange={(e) => setNewFolder(e.target.value)} placeholder="새 폴더 이름" className="border rounded px-2 py-1 bg-white text-gray-900" />
+                <div className="flex flex-wrap gap-1">
+                  {ICONS.map((ic) => (
+                    <button key={ic} type="button" onClick={() => setNewIcon(ic)}
+                      className={`w-8 h-8 rounded-lg ${newIcon === ic ? 'bg-blue-100 ring-2 ring-blue-400' : 'bg-gray-50 border border-gray-200'}`}>{ic}</button>
+                  ))}
+                </div>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newPublic} onChange={(e) => setNewPublic(e.target.checked)} /> 공개</label>
                 <button onClick={createFolder} className="bg-gray-800 text-white rounded px-3 py-2 text-sm">+ 폴더 만들기</button>
               </div>
