@@ -29,23 +29,25 @@ export default function Header() {
   }
 
   return (
-    <header className="h-14 shrink-0 bg-white border-b border-gray-200 flex items-center px-4 gap-2 sticky top-0 z-30">
-      <Link href="/map" className="font-extrabold text-lg mr-2 text-blue-600 whitespace-nowrap">🐾 멍냥플레이스</Link>
-      <nav className="flex items-center gap-1">
+    <header className="h-14 shrink-0 bg-white border-b border-gray-200 flex items-center px-3 gap-1 sticky top-0 z-30 overflow-x-auto">
+      <Link href="/map" className="font-extrabold text-lg mr-1 text-blue-600 whitespace-nowrap shrink-0">
+        🐾<span className="hidden sm:inline"> 멍냥플레이스</span>
+      </Link>
+      <nav className="flex items-center gap-1 shrink-0">
         {NAV.map((n) => (
           <Link key={n.href} href={n.href}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${
               pathname === n.href ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
             }`}>
             {n.label}
           </Link>
         ))}
       </nav>
-      <div className="ml-auto">
+      <div className="ml-auto shrink-0 pl-2">
         {user ? (
-          <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-900">로그아웃</button>
+          <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-900 whitespace-nowrap">로그아웃</button>
         ) : (
-          <Link href="/login" className="text-sm bg-blue-600 text-white rounded-full px-4 py-1.5">로그인</Link>
+          <Link href="/login" className="text-sm bg-blue-600 text-white rounded-full px-4 py-1.5 whitespace-nowrap">로그인</Link>
         )}
       </div>
     </header>

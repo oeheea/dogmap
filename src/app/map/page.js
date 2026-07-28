@@ -21,6 +21,7 @@ export default function MapPage() {
   const [user, setUser] = useState(null)
   const [allPlaces, setAllPlaces] = useState([])
   const [activeCat, setActiveCat] = useState('전체')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [selected, setSelected] = useState(null)
   const [stats, setStats] = useState(null)
 
@@ -173,19 +174,21 @@ export default function MapPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-56px)]">
-      <aside className="w-60 shrink-0 border-r bg-white text-gray-900 p-4 overflow-y-auto">
+    <div className="flex h-[calc(100vh-56px)] relative">
+      {sidebarOpen && <div className="sm:hidden absolute inset-0 bg-black/30 z-30" onClick={() => setSidebarOpen(false)} />}
+      <aside className={`w-64 sm:w-60 shrink-0 border-r bg-white text-gray-900 p-4 overflow-y-auto absolute sm:static inset-y-0 left-0 z-40 transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0`}>
+        <button onClick={() => setSidebarOpen(false)} className="sm:hidden absolute top-2 right-2 text-gray-400 text-lg">✕</button>
         <p className="text-xs text-gray-500 mb-1">카테고리</p>
         <ul className="flex flex-col gap-1 mb-4">
           {['전체', ...CATEGORIES].map((c) => (
             <li key={c}>
-              <button onClick={() => setActiveCat(c)} className={`w-full text-left rounded px-3 py-2 text-sm ${activeCat === c ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>{c}</button>
+              <button onClick={() => { setActiveCat(c); setSidebarOpen(false) }} className={`w-full text-left rounded px-3 py-2 text-sm ${activeCat === c ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>{c}</button>
             </li>
           ))}
         </ul>
 
         {user && (
-          <button onClick={() => { setSelected(null); setRegister(true) }} className="w-full mb-4 bg-blue-600 text-white rounded-lg py-2 text-sm">＋ 장소 등록</button>
+          <button onClick={() => { setSelected(null); setRegister(true); setSidebarOpen(false) }} className="w-full mb-4 bg-blue-600 text-white rounded-lg py-2 text-sm">＋ 장소 등록</button>
         )}
 
         {user && (
@@ -214,6 +217,7 @@ export default function MapPage() {
 
       <div className="relative flex-1">
         <div ref={mapRef} className="w-full h-full" />
+        <button onClick={() => setSidebarOpen(true)} className="sm:hidden absolute top-3 left-3 z-20 bg-white shadow rounded-full w-10 h-10 flex items-center justify-center text-lg">☰</button>
 
         {register && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/80 text-white text-sm rounded-full px-4 py-2">
