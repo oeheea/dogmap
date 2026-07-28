@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ensurePlace } from '@/lib/place'
 import Loading from '@/components/Loading'
+import { formatAddress } from '@/lib/format'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const TAG_OPTIONS = ['강아지 음료 O', '대형견 가능', '실내 운동장', '마당 있음', '동반석 별도', '캐리어 필요', '자유 산책 가능', '리드줄 필수']
@@ -95,7 +96,7 @@ export default function BrowsePage() {
             <div className="flex justify-between items-start gap-2">
               <Link href={`/place/${p.id}`} className="flex-1 min-w-0">
                 <div className="font-bold text-[15px] truncate">{p.name}</div>
-                <div className="text-xs text-gray-500 mt-0.5 truncate">{p.address}</div>
+                <div className="text-xs text-gray-500 mt-0.5 truncate">{formatAddress(p.address)}</div>
                 <span className="inline-block mt-2 text-xs bg-blue-50 text-blue-700 rounded-full px-2.5 py-0.5">{p.category}</span>
                 {(p.tags ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { formatAddress } from '@/lib/format'
 import Loading from '@/components/Loading'
 
 export default function Home() {
@@ -87,7 +88,7 @@ export default function Home() {
           <li key={p.id}>
             <Link href={`/place/${p.id}`} className="block bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition">
               <div className="font-bold text-sm">{p.name}</div>
-              <div className="text-xs text-gray-400">{p.category} · {p.address}</div>
+              <div className="text-xs text-gray-400">{p.category} · {formatAddress(p.address)}</div>
             </Link>
           </li>
         ))}

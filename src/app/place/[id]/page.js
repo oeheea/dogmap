@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { formatAddress } from '@/lib/format'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const TAG_OPTIONS = ['강아지 음료 O', '대형견 가능', '실내 운동장', '마당 있음', '동반석 별도', '캐리어 필요', '자유 산책 가능', '리드줄 필수']
@@ -95,7 +96,7 @@ export default function PlaceDetail() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mt-2">
         <h1 className="text-2xl font-extrabold">{place.name}</h1>
-        <p className="text-sm text-gray-500 mt-1">{place.address}</p>
+        <p className="text-sm text-gray-500 mt-1">{formatAddress(place.address)}</p>
         {avg && <p className="text-sm mt-2"><span className="text-amber-500">★</span> <b>{avg}</b> <span className="text-gray-400">· 후기 {reviews.length}</span></p>}
 
         <div className="mt-3 pt-3 border-t border-gray-100">

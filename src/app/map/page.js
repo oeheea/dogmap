@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { formatAddress } from '@/lib/format'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
@@ -68,7 +69,7 @@ export default function MapPage() {
           try {
             const res = await fetch(`/api/geocode?lat=${lat}&lon=${lng}`)
             const d = await res.json()
-            setRegForm((f) => ({ ...f, address: d.address ?? '' }))
+            setRegForm((f) => ({ ...f, address: formatAddress(d.address ?? '') }))
           } catch {}
         })
         const { data: places } = await supabase.from('places').select('*').eq('hidden', false)
@@ -190,7 +191,7 @@ export default function MapPage() {
     setRegPos({ lat: r.lat, lng: r.lng })
     if (tempMarkerRef.current) tempMarkerRef.current.setPosition(latlng)
     else tempMarkerRef.current = new window.kakao.maps.Marker({ position: latlng, map })
-    setRegForm((f) => ({ ...f, name: r.name || f.name, address: r.address || f.address }))
+    setRegForm((f) => ({ ...f, name: r.name || f.name, address: formatAddress(r.address) || f.address }))
     setRegResults([])
   }
 
@@ -343,7 +344,7 @@ export default function MapPage() {
             <div className="flex justify-between items-start">
               <div className="min-w-0">
                 <div className="font-bold text-base truncate">{selected.name}</div>
-                <div className="text-xs text-gray-500 truncate">{selected.address}</div>
+                <div className="text-xs text-gray-500 truncate">{formatAddress(selected.address)}</div>
               </div>
               <button onClick={() => setSelected(null)} className="text-gray-400 text-lg leading-none">✕</button>
             </div>
