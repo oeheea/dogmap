@@ -30,7 +30,7 @@ export default function Header() {
 
   return (
     <header className="h-14 shrink-0 bg-white border-b border-gray-200 flex items-center px-3 gap-1 sticky top-0 z-30 overflow-x-auto">
-      <Link href="/map" className="font-extrabold text-lg mr-1 text-blue-600 whitespace-nowrap shrink-0">
+      <Link href="/" className="font-extrabold text-lg mr-1 text-blue-600 whitespace-nowrap shrink-0">
         🐾<span className="hidden sm:inline"> 멍냥플레이스</span>
       </Link>
       <nav className="flex items-center gap-1 shrink-0">

@@ -18,11 +18,11 @@ export default function LoginPage() {
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({ email, password, options: { data: { nickname } } })
       if (error) { setMessage('회원가입 실패: ' + error.message); return }
-      router.push('/map')
+      router.push('/')
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setMessage('로그인 실패: ' + error.message); return }
-      router.push('/map')
+      router.push('/')
     }
   }
 
