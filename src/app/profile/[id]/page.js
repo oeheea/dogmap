@@ -72,6 +72,15 @@ export default function ProfilePage() {
   }
   async function logout() { await supabase.auth.signOut(); router.push('/login') }
 
+  async function deleteAccount() {
+    if (!confirm('정말 탈퇴하시겠어요? 모든 폴더·후기·글·산책 기록이 삭제되고 되돌릴 수 없어요.')) return
+    const { error } = await supabase.rpc('delete_my_account')
+    if (error) { alert('탈퇴 실패: ' + error.message); return }
+    await supabase.auth.signOut()
+    alert('탈퇴가 완료되었어요. 그동안 고마웠어요 🐾')
+    router.push('/login')
+  }
+
   if (loading) return <Loading />
   if (!profile) return <div className="max-w-lg mx-auto p-6 text-center text-gray-500">없는 사용자예요.</div>
 
@@ -160,7 +169,10 @@ export default function ProfilePage() {
       </div>
 
       {isOwner && (
-        <button onClick={logout} className="w-full mt-8 border border-gray-200 text-gray-500 rounded-xl py-2.5 text-sm hover:bg-gray-50">로그아웃</button>
+        <div className="mt-8 flex flex-col gap-2">
+          <button onClick={logout} className="w-full border border-gray-200 text-gray-500 rounded-xl py-2.5 text-sm hover:bg-gray-50">로그아웃</button>
+          <button onClick={deleteAccount} className="w-full border border-gray-200 text-red-500 rounded-xl py-2.5 text-sm hover:bg-red-50">회원탈퇴</button>
+        </div>
       )}
 
       {editing && (
