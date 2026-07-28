@@ -94,6 +94,10 @@ export default function Home() {
           </li>
         ))}
       </ul>
+
+      <p className="text-center text-[11px] text-gray-400 mt-8 mb-2">
+        장소 데이터 · 한국문화정보원(공공데이터포털 data.go.kr)
+      </p>
     </div>
   )
 }
