@@ -22,6 +22,7 @@ export default function MapPage() {
   const [allPlaces, setAllPlaces] = useState([])
   const [activeCat, setActiveCat] = useState('전체')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const [stats, setStats] = useState(null)
 
@@ -38,6 +39,8 @@ export default function MapPage() {
   const [register, setRegister] = useState(false)
   const [regPos, setRegPos] = useState(null)
   const [regForm, setRegForm] = useState({ name: '', category: CATEGORIES[0], address: '', description: '' })
+  const [regQuery, setRegQuery] = useState('')
+  const [regResults, setRegResults] = useState([])
 
   useEffect(() => { registerRef.current = register }, [register])
 
@@ -92,6 +95,15 @@ export default function MapPage() {
   async function loadFolders(uid) {
     const { data } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', uid).order('created_at')
     setFolders(data ?? [])
+  }
+
+  function goToPlace(p) {
+    const map = mapObjRef.current
+    map.setLevel(4)
+    map.setCenter(new window.kakao.maps.LatLng(p.lat, p.lng))
+    selectPlace(p)
+    setSidebarOpen(false)
+    setQuery('')
   }
 
   async function selectPlace(p) {
@@ -158,6 +170,24 @@ export default function MapPage() {
     alert('저장했어요! 🐾'); setShowSave(false); loadFolders(user.id)
   }
 
+  async function searchForRegister(e) {
+    e.preventDefault()
+    if (!regQuery.trim()) return
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(regQuery)}`)
+    const d = await res.json()
+    setRegResults(d.places ?? [])
+  }
+  function pickSearchResult(r) {
+    const map = mapObjRef.current
+    const latlng = new window.kakao.maps.LatLng(r.lat, r.lng)
+    map.setLevel(3); map.setCenter(latlng)
+    setRegPos({ lat: r.lat, lng: r.lng })
+    if (tempMarkerRef.current) tempMarkerRef.current.setPosition(latlng)
+    else tempMarkerRef.current = new window.kakao.maps.Marker({ position: latlng, map })
+    setRegForm((f) => ({ ...f, name: r.name || f.name, address: r.address || f.address }))
+    setRegResults([])
+  }
+
   async function saveRegister(e) {
     e.preventDefault()
     if (!regPos) { alert('지도를 클릭해 위치를 먼저 선택해주세요'); return }
@@ -170,6 +200,7 @@ export default function MapPage() {
   }
   function cancelRegister() {
     setRegister(false); setRegPos(null); setRegForm({ name: '', category: CATEGORIES[0], address: '', description: '' })
+    setRegQuery(''); setRegResults([])
     if (tempMarkerRef.current) { tempMarkerRef.current.setMap(null); tempMarkerRef.current = null }
   }
 
@@ -178,6 +209,23 @@ export default function MapPage() {
       {sidebarOpen && <div className="sm:hidden absolute inset-0 bg-black/30 z-30" onClick={() => setSidebarOpen(false)} />}
       <aside className={`w-64 sm:w-60 shrink-0 border-r bg-white text-gray-900 p-4 overflow-y-auto absolute sm:static inset-y-0 left-0 z-40 transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0`}>
         <button onClick={() => setSidebarOpen(false)} className="sm:hidden absolute top-2 right-2 text-gray-400 text-lg">✕</button>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="🔍 장소 이름 검색"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2 bg-white" />
+        {query && (
+          <ul className="flex flex-col gap-1 mb-3 max-h-52 overflow-y-auto">
+            {allPlaces.filter((p) => p.name.includes(query)).slice(0, 20).map((p) => (
+              <li key={p.id}>
+                <button onClick={() => goToPlace(p)} className="w-full text-left rounded px-3 py-2 text-sm hover:bg-gray-100">
+                  <div className="font-medium truncate">{p.name}</div>
+                  <div className="text-[11px] text-gray-400 truncate">{p.category} · {p.address}</div>
+                </button>
+              </li>
+            ))}
+            {allPlaces.filter((p) => p.name.includes(query)).length === 0 && (
+              <li className="text-xs text-gray-400 px-1">결과 없음</li>
+            )}
+          </ul>
+        )}
         <p className="text-xs text-gray-500 mb-1">카테고리</p>
         <ul className="flex flex-col gap-1 mb-4">
           {['전체', ...CATEGORIES].map((c) => (
@@ -220,8 +268,29 @@ export default function MapPage() {
         <button onClick={() => setSidebarOpen(true)} className="sm:hidden absolute top-3 left-3 z-20 bg-white shadow rounded-full w-10 h-10 flex items-center justify-center text-lg">☰</button>
 
         {register && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/80 text-white text-sm rounded-full px-4 py-2">
-            지도를 클릭해 위치를 선택하세요 <button onClick={cancelRegister} className="ml-2 underline">취소</button>
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 w-80 max-w-[90vw] bg-white rounded-2xl shadow-xl p-3">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-semibold">장소 등록</span>
+              <button onClick={cancelRegister} className="text-gray-400 text-sm">취소</button>
+            </div>
+            <form onSubmit={searchForRegister} className="flex gap-2">
+              <input value={regQuery} onChange={(e) => setRegQuery(e.target.value)} placeholder="이름·주소로 검색"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <button className="bg-blue-600 text-white rounded-lg px-3 text-sm">검색</button>
+            </form>
+            {regResults.length > 0 && (
+              <ul className="mt-2 max-h-40 overflow-y-auto flex flex-col gap-1">
+                {regResults.map((r, i) => (
+                  <li key={i}>
+                    <button onClick={() => pickSearchResult(r)} className="w-full text-left border border-gray-100 rounded-lg px-2 py-1.5 hover:bg-gray-50">
+                      <div className="text-sm font-medium truncate">{r.name}</div>
+                      <div className="text-[11px] text-gray-400 truncate">{r.address}</div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11px] text-gray-400 mt-2">검색이 안 되면 지도를 직접 클릭해 위치를 찍어도 돼요.</p>
           </div>
         )}
 
