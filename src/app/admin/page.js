@@ -19,10 +19,16 @@ export default function AdminPage() {
   }
   useEffect(() => { load() }, [])
 
-  async function restore(id) { await supabase.from('places').update({ hidden: false }).eq('id', id); load() }
+  async function restore(id) {
+    const { error } = await supabase.rpc('admin_set_hidden', { pid: id, val: false })
+    if (error) { alert('복구 실패: ' + error.message); return }
+    load()
+  }
   async function remove(id) {
     if (!confirm('완전히 삭제할까요? 되돌릴 수 없어요.')) return
-    await supabase.from('places').delete().eq('id', id); load()
+    const { error } = await supabase.rpc('admin_delete_place', { pid: id })
+    if (error) { alert('삭제 실패: ' + error.message); return }
+    load()
   }
 
   if (!loaded) return <div className="p-6 text-gray-400">불러오는 중...</div>
