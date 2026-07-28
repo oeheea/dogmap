@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
+import LoginRequired from '@/components/LoginRequired'
 
 export default function MyReviewsPage() {
   const [user, setUser] = useState(null)
@@ -58,8 +59,8 @@ export default function MyReviewsPage() {
 
   if (loading) return <Loading />
   
-  if (!user) return (<div className="p-6">로그인이 필요해요. <Link href="/login" className="text-blue-600 underline">로그인</Link></div>)
-
+  if (!user) return <LoginRequired />
+  
   const avg = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null
 
   return (

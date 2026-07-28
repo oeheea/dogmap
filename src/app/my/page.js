@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import ShapeIcon from '@/components/ShapeIcon'
 import Loading from '@/components/Loading'
+import LoginRequired from '@/components/LoginRequired'
 
 export default function MyPage() {
   const [user, setUser] = useState(null)
@@ -25,8 +26,8 @@ export default function MyPage() {
 
   if (loading) return <Loading />
   
-  if (!user) return (<div className="p-6">로그인이 필요해요. <Link href="/login" className="text-blue-600 underline">로그인</Link></div>)
-
+  if (!user) return <LoginRequired />
+  
   const Row = (f, tag) => (
     <li key={f.id}>
       <Link href={`/folder/${f.id}`} className="flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
+import LoginRequired from '@/components/LoginRequired'
 
 export default function FeedPage() {
   const [user, setUser] = useState(null)
@@ -27,8 +28,8 @@ export default function FeedPage() {
   useEffect(() => { load() }, [])
 
   if (loading) return <Loading />
-  if (!user) return (<div className="max-w-lg mx-auto p-6 text-center text-gray-500">로그인이 필요해요. <Link href="/login" className="text-blue-600 underline">로그인</Link></div>)
-
+  if (!user) return <LoginRequired />
+  
   return (
     <div className="max-w-lg mx-auto p-4">
       <h1 className="text-2xl font-extrabold mb-4">피드</h1>

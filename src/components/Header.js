@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const NAV = [
   { href: '/map', label: '지도' },
   { href: '/browse', label: '둘러보기' },
+  { href: '/community', label: '커뮤니티' },
   { href: '/feed', label: '피드' },
   { href: '/my', label: '내 폴더' },
   { href: '/my-reviews', label: '내 후기' },
@@ -15,19 +16,21 @@ const NAV = [
 
 export default function Header() {
   const pathname = usePathname()
-  const router = useRouter()
   const [user, setUser] = useState(null)
+  const [avatar, setAvatar] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null))
+    async function loadUser(u) {
+      setUser(u)
+      if (u) {
+        const { data } = await supabase.from('profiles').select('avatar_url, nickname').eq('id', u.id).single()
+        setAvatar(data)
+      } else setAvatar(null)
+    }
+    supabase.auth.getUser().then(({ data }) => loadUser(data.user))
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => loadUser(session?.user ?? null))
     return () => sub.subscription.unsubscribe()
   }, [])
-
-  async function logout() {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   return (
     <header className="h-14 shrink-0 bg-white border-b border-gray-200 flex items-center px-3 gap-1 sticky top-0 z-30 overflow-x-auto">
@@ -47,10 +50,15 @@ export default function Header() {
       {user?.email === 'oe7eea7@gmail.com' && (
         <Link href="/admin" className="px-2.5 py-1.5 rounded-full text-sm font-medium text-red-500 hover:bg-red-50 whitespace-nowrap shrink-0">관리</Link>
       )}
-      <div className="ml-auto shrink-0 pl-2 flex items-center gap-3">
-        {user && <Link href={`/profile/${user.id}`} className="text-sm text-gray-600 hover:text-gray-900 whitespace-nowrap">프로필</Link>}
+      <div className="ml-auto shrink-0 pl-2">
         {user ? (
-          <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-900 whitespace-nowrap">로그아웃</button>
+          <Link href={`/profile/${user.id}`} className="block">
+            {avatar?.avatar_url ? (
+              <img src={avatar.avatar_url} alt="프로필" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">{(avatar?.nickname ?? '?').slice(0, 1)}</span>
+            )}
+          </Link>
         ) : (
           <Link href="/login" className="text-sm bg-blue-600 text-white rounded-full px-4 py-1.5 whitespace-nowrap">로그인</Link>
         )}
