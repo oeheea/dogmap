@@ -25,7 +25,7 @@ export default function MapPage() {
   const [user, setUser] = useState(null)
   const [allPlaces, setAllPlaces] = useState([])
   const [activeCat, setActiveCat] = useState('전체')
-  const [activeTag, setActiveTag] = useState(null)
+  const [activeTags, setActiveTags] = useState([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
@@ -94,12 +94,12 @@ export default function MapPage() {
     if (!map || !window.kakao) return
     placeMarkersRef.current.forEach((m) => m.setMap(null))
     placeMarkersRef.current = []
-    allPlaces.filter((p) => (activeCat === '전체' || p.category === activeCat) && (!activeTag || (p.tags ?? []).includes(activeTag)) && !hiddenIds.has(p.id)).forEach((p) => {
+    allPlaces.filter((p) => (activeCat === '전체' || p.category === activeCat) && (activeTags.length === 0 || activeTags.every((t) => (p.tags ?? []).includes(t))) && !hiddenIds.has(p.id)).forEach((p) => {
       const marker = new window.kakao.maps.Marker({ position: new window.kakao.maps.LatLng(p.lat, p.lng), map })
       window.kakao.maps.event.addListener(marker, 'click', () => selectPlace(p))
       placeMarkersRef.current.push(marker)
     })
-  }, [allPlaces, activeCat, activeTag, hiddenIds])
+  }, [allPlaces, activeCat, activeTags, hiddenIds])
   useEffect(() => {
     if (restoredRef.current) return
     if (!mapReady) return
@@ -267,8 +267,8 @@ export default function MapPage() {
         <p className="text-xs text-gray-500 mb-1">특징</p>
         <div className="flex flex-wrap gap-1 mb-4">
           {TAG_OPTIONS.map((t) => (
-            <button key={t} onClick={() => setActiveTag(activeTag === t ? null : t)}
-              className={`text-xs rounded-full px-2.5 py-1 border ${activeTag === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'}`}>
+            <button key={t} onClick={() => setActiveTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])}
+              className={`text-xs rounded-full px-2.5 py-1 border ${activeTags.includes(t) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'}`}>
               #{t}
             </button>
           ))}
