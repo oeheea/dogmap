@@ -8,7 +8,7 @@ import Loading from '@/components/Loading'
 import { formatAddress } from '@/lib/format'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
-const TAG_OPTIONS = ['강아지 음료 O', '대형견 가능', '실내 운동장', '마당 있음', '동반석 별도', '캐리어 필요', '자유 산책 가능', '리드줄 필수']
+const TAG_OPTIONS = ['강아지 음료 O', '대형견 가능', '자유 산책 가능', '마당 있음', '실내 동반 가능', '매장 강아지 있음', '반려동물 전용 메뉴', '무게 제한 있음']
 
 export default function BrowsePage() {
   const [user, setUser] = useState(null)

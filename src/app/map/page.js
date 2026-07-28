@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
+const TAG_OPTIONS = ['강아지 음료 O', '대형견 가능', '자유 산책 가능', '마당 있음', '실내 동반 가능', '매장 강아지 있음', '반려동물 전용 메뉴', '무게 제한 있음']
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 const ICONS = ['📍', '⭐', '❤️', '🐶', '🐾', '☕', '🍽️', '🌳', '🏠', '🔥']
 
@@ -24,6 +25,7 @@ export default function MapPage() {
   const [user, setUser] = useState(null)
   const [allPlaces, setAllPlaces] = useState([])
   const [activeCat, setActiveCat] = useState('전체')
+  const [activeTag, setActiveTag] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
@@ -92,12 +94,12 @@ export default function MapPage() {
     if (!map || !window.kakao) return
     placeMarkersRef.current.forEach((m) => m.setMap(null))
     placeMarkersRef.current = []
-    allPlaces.filter((p) => (activeCat === '전체' || p.category === activeCat) && !hiddenIds.has(p.id)).forEach((p) => {
+    allPlaces.filter((p) => (activeCat === '전체' || p.category === activeCat) && (!activeTag || (p.tags ?? []).includes(activeTag)) && !hiddenIds.has(p.id)).forEach((p) => {
       const marker = new window.kakao.maps.Marker({ position: new window.kakao.maps.LatLng(p.lat, p.lng), map })
       window.kakao.maps.event.addListener(marker, 'click', () => selectPlace(p))
       placeMarkersRef.current.push(marker)
     })
-  }, [allPlaces, activeCat, hiddenIds])
+  }, [allPlaces, activeCat, activeTag, hiddenIds])
   useEffect(() => {
     if (restoredRef.current) return
     if (!mapReady) return
@@ -262,6 +264,16 @@ export default function MapPage() {
           ))}
         </ul>
 
+        <p className="text-xs text-gray-500 mb-1">특징</p>
+        <div className="flex flex-wrap gap-1 mb-4">
+          {TAG_OPTIONS.map((t) => (
+            <button key={t} onClick={() => setActiveTag(activeTag === t ? null : t)}
+              className={`text-xs rounded-full px-2.5 py-1 border ${activeTag === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'}`}>
+              #{t}
+            </button>
+          ))}
+        </div>
+
         {user && (
           <button onClick={() => { setSelected(null); setRegister(true); setSidebarOpen(false) }} className="w-full mb-4 bg-blue-600 text-white rounded-lg py-2 text-sm">＋ 장소 등록</button>
         )}
@@ -372,6 +384,11 @@ export default function MapPage() {
               {stats?.count > 0 ? <span className="text-amber-500 font-semibold">★ {stats.avg} <span className="text-gray-400 font-normal">· 후기 {stats.count}</span></span> : <span className="text-gray-400 text-xs">아직 후기가 없어요</span>}
             </div>
             <span className="inline-block mt-1.5 text-xs bg-blue-50 text-blue-700 rounded-full px-2 py-0.5">{selected.category}</span>
+            {(selected.tags ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {selected.tags.map((t) => <span key={t} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">#{t}</span>)}
+              </div>
+            )}
             <div className="flex gap-2 mt-3">
               <button onClick={openSave} className="flex-1 bg-blue-600 text-white rounded-lg px-3 py-2 text-sm font-medium">⭐ 저장</button>
               <button onClick={() => router.push(`/place/${selected.id}`)} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm">상세·후기</button>
