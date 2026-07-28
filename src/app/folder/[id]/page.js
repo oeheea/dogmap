@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { formatAddress } from '@/lib/format'
 import FolderEditModal from '@/components/FolderEditModal'
 
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
@@ -124,7 +125,7 @@ export default function FolderDetail() {
                   <span className="w-4 h-4 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: it.color || '#3b82f6' }} />
                   <span className="min-w-0">
                     <span className="font-bold text-sm block truncate">{it.label || it.places.name}</span>
-                    <span className="text-xs text-gray-400 block truncate">{it.places.address}</span>
+                    <span className="text-xs text-gray-400 block truncate">{formatAddress(it.places.address)}</span>
                   </span>
                 </Link>
                 {isOwner && (

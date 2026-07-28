@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { formatAddress } from '@/lib/format'
 
 const ADMIN_EMAIL = 'oe7eea7@gmail.com'  // 관리자 이메일
 
@@ -45,7 +46,7 @@ export default function AdminPage() {
         {places.map((p) => (
           <li key={p.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <div className="font-bold text-sm">{p.name}</div>
-            <div className="text-xs text-gray-400">{p.category} · {p.address}</div>
+            <div className="text-xs text-gray-400">{p.category} · {formatAddress(p.address)}</div>
             <div className="text-xs text-red-500 mt-1">🚩 신고 {p.reports?.[0]?.count ?? 0}건</div>
             <div className="flex gap-2 mt-3">
               <button onClick={() => restore(p.id)} className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm">복구</button>
