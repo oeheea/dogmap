@@ -31,9 +31,14 @@ export default function BrowsePage() {
   async function handleSearch(e) {
     e.preventDefault()
     if (!query.trim()) return
-    const res = await fetch(`/api/search?query=${encodeURIComponent(query)}`)
-    const data = await res.json()
-    setResults(data.places)
+    async function addPlace(p) {
+    const { error } = await supabase.from('places').insert({
+      name: p.name, category: addCat, address: p.address, lat: p.lat, lng: p.lng,
+    })
+    if (error) { alert('추가 실패: ' + error.message); return }
+    alert('추가했어요! 세부 태그는 가게 상세에서 달 수 있어요 🐾')
+    setShowAdd(false); setQuery(''); setResults([]); setActive('전체')
+  }
   }
   async function addPlace(p) {
     try {
@@ -69,10 +74,10 @@ export default function BrowsePage() {
       </div>
 
       {user && (
-        <button onClick={() => setShowAdd(true)}
-          className="w-full mb-4 bg-white border border-dashed border-blue-300 rounded-xl py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition">
-          ＋ 가게 직접 추가
-        </button>
+        <Link href="/map"
+          className="block text-center w-full mb-4 bg-white border border-dashed border-blue-300 rounded-xl py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition">
+          ＋ 지도에서 장소 추가
+        </Link>
       )}
 
       {places.length === 0 && (
