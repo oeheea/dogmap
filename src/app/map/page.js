@@ -28,6 +28,7 @@ export default function MapPage() {
 
   const [folders, setFolders] = useState([])
   const [folderOn, setFolderOn] = useState({})
+  const [subFolders, setSubFolders] = useState([])
   const [hiddenIds, setHiddenIds] = useState(new Set())
 
   const [showSave, setShowSave] = useState(false)
@@ -51,7 +52,7 @@ export default function MapPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => { setUser(data.user); if (data.user) loadFolders(data.user.id) })
+    supabase.auth.getUser().then(({ data }) => { setUser(data.user); if (data.user) { loadFolders(data.user.id); loadSubs(data.user.id) } })
     const KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY
     function initMap() {
       window.kakao.maps.load(async () => {
@@ -95,6 +96,11 @@ export default function MapPage() {
   async function loadFolders(uid) {
     const { data } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', uid).order('created_at')
     setFolders(data ?? [])
+  }
+
+  async function loadSubs(uid) {
+    const { data } = await supabase.from('folder_subscriptions').select('folders(*, saved_places(count))').eq('user_id', uid)
+    setSubFolders((data ?? []).map((d) => d.folders).filter(Boolean))
   }
 
   function goToPlace(p) {
@@ -259,6 +265,28 @@ export default function MapPage() {
                 </li>
               ))}
             </ul>
+
+            {subFolders.length > 0 && (
+              <>
+                <p className="text-xs text-gray-500 mb-1 mt-4">구독 폴더</p>
+                <ul className="flex flex-col gap-2">
+                  {subFolders.map((f) => (
+                    <li key={f.id} className="flex items-center justify-between">
+                      <Link href={`/folder/${f.id}`} className="flex items-center gap-2 min-w-0 hover:opacity-70">
+                        <span className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs bg-gray-100">{f.icon || '📍'}</span>
+                        <div className="min-w-0">
+                          <div className="text-sm truncate">{f.name}</div>
+                          <div className="text-[11px] text-gray-400">구독 · {f.saved_places?.[0]?.count ?? 0}개</div>
+                        </div>
+                      </Link>
+                      <button onClick={() => toggleFolder(f)} className={`w-10 h-6 rounded-full shrink-0 relative transition ${folderOn[f.id] ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${folderOn[f.id] ? 'left-[18px]' : 'left-0.5'}`} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </>
         )}
       </aside>

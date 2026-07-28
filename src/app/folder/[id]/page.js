@@ -16,8 +16,8 @@ export default function FolderDetail() {
   const [items, setItems] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [subscribed, setSubscribed] = useState(false)
 
-  // 즐겨찾기 개별 수정
   const [editId, setEditId] = useState(null)
   const [editLabel, setEditLabel] = useState('')
   const [editColor, setEditColor] = useState('#3b82f6')
@@ -29,6 +29,10 @@ export default function FolderDetail() {
     if (f) {
       const { data: its } = await supabase.from('saved_places').select('id, color, label, places(*)').eq('folder_id', id)
       setItems(its ?? [])
+      if (u.user && u.user.id !== f.user_id) {
+        const { data: sub } = await supabase.from('folder_subscriptions').select('id').eq('user_id', u.user.id).eq('folder_id', id).maybeSingle()
+        setSubscribed(!!sub)
+      }
     }
     setLoaded(true)
   }
@@ -43,6 +47,18 @@ export default function FolderDetail() {
   async function delItem(sid) {
     if (!confirm('이 장소를 폴더에서 삭제할까요?')) return
     await supabase.from('saved_places').delete().eq('id', sid); load()
+  }
+
+  async function toggleSubscribe() {
+    if (!user) { alert('로그인이 필요해요'); return }
+    if (subscribed) {
+      await supabase.from('folder_subscriptions').delete().eq('user_id', user.id).eq('folder_id', id)
+      setSubscribed(false)
+    } else {
+      const { error } = await supabase.from('folder_subscriptions').insert({ user_id: user.id, folder_id: id })
+      if (error) { alert(error.message); return }
+      setSubscribed(true)
+    }
   }
 
   function share() {
@@ -75,6 +91,11 @@ export default function FolderDetail() {
 
       <div className="flex gap-2 mt-4">
         {isOwner && <button onClick={() => setShowEdit(true)} className="flex-1 border border-gray-200 rounded-full py-2 text-sm">✎ 그룹 편집</button>}
+        {!isOwner && folder.is_public && (
+          <button onClick={toggleSubscribe} className={`flex-1 rounded-full py-2 text-sm ${subscribed ? 'border border-gray-200 text-gray-600' : 'bg-blue-600 text-white'}`}>
+            {subscribed ? '구독중 ✓' : '＋ 구독'}
+          </button>
+        )}
         <button onClick={share} className="flex-1 bg-blue-600 text-white rounded-full py-2 text-sm">🔗 공유</button>
       </div>
 
