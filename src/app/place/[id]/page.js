@@ -176,7 +176,7 @@ export default function PlaceDetail() {
         {reviews.filter((r) => !(editingReview && r.id === myReview?.id)).map((r) => (
           <li key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-sm">{r.nickname ?? '익명'}</span>
+              <Link href={`/profile/${r.user_id}`} className="font-semibold text-sm hover:underline">{r.nickname ?? '익명'}</Link>
               <span className="text-amber-500 text-sm">{'★'.repeat(r.rating)}<span className="text-gray-200">{'★'.repeat(5 - r.rating)}</span></span>
             </div>
             <p className="mt-1.5 text-sm text-gray-700">{r.content}</p>
