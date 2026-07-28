@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import Loading from '@/components/Loading'
 
 export default function MyReviewsPage() {
   const [user, setUser] = useState(null)
   const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
 
   // 인라인 수정 상태
   const [editId, setEditId] = useState(null)
@@ -18,12 +20,13 @@ export default function MyReviewsPage() {
   async function load() {
     const { data: u } = await supabase.auth.getUser()
     setUser(u.user)
-    if (!u.user) return
+    if (!u.user) { setLoading(false); return }
     const { data } = await supabase.from('reviews')
       .select('*, places(name, category)')
       .eq('user_id', u.user.id)
       .order('created_at', { ascending: false })
     setReviews(data ?? [])
+    setLoading(false)
   }
   useEffect(() => { load() }, [])
 
@@ -53,6 +56,8 @@ export default function MyReviewsPage() {
     load()
   }
 
+  if (loading) return <Loading />
+  
   if (!user) return (<div className="p-6">로그인이 필요해요. <Link href="/login" className="text-blue-600 underline">로그인</Link></div>)
 
   const avg = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null

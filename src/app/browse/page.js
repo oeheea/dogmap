@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ensurePlace } from '@/lib/place'
+import Loading from '@/components/Loading'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const TAG_OPTIONS = ['강아지 음료 O', '대형견 가능', '실내 운동장', '마당 있음', '동반석 별도', '캐리어 필요', '자유 산책 가능', '리드줄 필수']
 
 export default function BrowsePage() {
   const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [active, setActive] = useState('전체')
   const [places, setPlaces] = useState([])
 
@@ -23,6 +25,7 @@ export default function BrowsePage() {
     if (active !== '전체') q = q.contains('tags', [active])
     const { data } = await q
     setPlaces(data ?? [])
+    setLoading(false)
   }
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setUser(data.user)) }, [])
@@ -59,10 +62,12 @@ export default function BrowsePage() {
     load()
   }
 
+  if (loading) return <Loading />
+
   return (
     <div className="max-w-lg mx-auto p-4">
       <h1 className="text-2xl font-extrabold mb-3">둘러보기</h1>
-
+      
       {/* 태그 필터 (가로 스크롤) */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
         {['전체', ...TAG_OPTIONS].map((t) => (

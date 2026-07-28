@@ -3,22 +3,27 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import Loading from '@/components/Loading'
 
 export default function MyPage() {
   const [user, setUser] = useState(null)
   const [folders, setFolders] = useState([])
   const [subs, setSubs] = useState([])
+  const [loading, setLoading] = useState(true)
 
   async function load() {
     const { data: u } = await supabase.auth.getUser(); setUser(u.user)
-    if (!u.user) return
+    if (!u.user) { setLoading(false); return }
     const { data } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', u.user.id).order('created_at')
     setFolders(data ?? [])
     const { data: s } = await supabase.from('folder_subscriptions').select('folders(*, saved_places(count))').eq('user_id', u.user.id)
     setSubs((s ?? []).map((d) => d.folders).filter(Boolean))
+    setLoading(false)
   }
   useEffect(() => { load() }, [])
 
+  if (loading) return <Loading />
+  
   if (!user) return (<div className="p-6">로그인이 필요해요. <Link href="/login" className="text-blue-600 underline">로그인</Link></div>)
 
   const Row = (f, tag) => (

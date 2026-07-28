@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import Loading from '@/components/Loading'
 
 export default function Home() {
   const [user, setUser] = useState(null)
   const [folders, setFolders] = useState([])
   const [recent, setRecent] = useState([])
   const [myReviews, setMyReviews] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -23,11 +25,13 @@ export default function Home() {
         const { count } = await supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('user_id', u.user.id)
         setMyReviews(count ?? 0)
       }
+      setLoading(false)
     }
     load()
   }, [])
 
   const nickname = user?.user_metadata?.nickname
+  if (loading) return <Loading />
 
   return (
     <div className="max-w-lg mx-auto p-4">
