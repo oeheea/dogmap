@@ -43,6 +43,9 @@ export default function Header() {
           </Link>
         ))}
       </nav>
+      {user?.email === 'oe7eea7@gmail.com' && (
+        <Link href="/admin" className="px-2.5 py-1.5 rounded-full text-sm font-medium text-red-500 hover:bg-red-50 whitespace-nowrap shrink-0">관리</Link>
+      )}
       <div className="ml-auto shrink-0 pl-2">
         {user ? (
           <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-900 whitespace-nowrap">로그아웃</button>
