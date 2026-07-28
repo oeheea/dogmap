@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 const NAV = [
   { href: '/map', label: '지도' },
   { href: '/browse', label: '둘러보기' },
+  { href: '/feed', label: '피드' },
   { href: '/my', label: '내 폴더' },
   { href: '/my-reviews', label: '내 후기' },
 ]

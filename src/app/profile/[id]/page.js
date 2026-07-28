@@ -19,7 +19,9 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('')
   const [reviewsPublic, setReviewsPublic] = useState(true)
   const [avatarFile, setAvatarFile] = useState(null)
-  
+  const [following, setFollowing] = useState(false)
+  const [counts, setCounts] = useState({ followers: 0, following: 0 })
+
   async function load() {
     const { data: u } = await supabase.auth.getUser(); setMe(u.user)
     const { data: p } = await supabase.from('profiles').select('*').eq('id', id).single()
@@ -32,9 +34,24 @@ export default function ProfilePage() {
       const { data: rv } = await supabase.from('reviews').select('*, places(name, category)').eq('user_id', id).order('created_at', { ascending: false })
       setReviews(rv ?? [])
     } else setReviews([])
+
+    const { count: followers } = await supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', id)
+    const { count: followingCnt } = await supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', id)
+    setCounts({ followers: followers ?? 0, following: followingCnt ?? 0 })
+    if (u.user && u.user.id !== id) {
+      const { data: fr } = await supabase.from('follows').select('id').eq('follower_id', u.user.id).eq('following_id', id).maybeSingle()
+      setFollowing(!!fr)
+    }
     setLoading(false)
   }
   useEffect(() => { load() }, [id])
+
+  async function toggleFollow() {
+    if (!me) { alert('로그인이 필요해요'); return }
+    if (following) await supabase.from('follows').delete().eq('follower_id', me.id).eq('following_id', id)
+    else await supabase.from('follows').insert({ follower_id: me.id, following_id: id })
+    load()
+  }
 
   async function saveProfile() {
     let avatar_url = profile.avatar_url ?? null
@@ -70,8 +87,13 @@ export default function ProfilePage() {
           <div className="min-w-0 flex-1">
             <div className="font-extrabold text-lg truncate">{profile.nickname ?? '익명'}</div>
             {profile.bio && <div className="text-sm text-gray-500">{profile.bio}</div>}
+            <div className="text-xs text-gray-400 mt-1">팔로워 {counts.followers} · 팔로잉 {counts.following}</div>
           </div>
-          {isOwner && <button onClick={() => setEditing(true)} className="text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1 shrink-0">편집</button>}
+          {isOwner ? (
+            <button onClick={() => setEditing(true)} className="text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1 shrink-0">편집</button>
+          ) : (
+            <button onClick={toggleFollow} className={`text-xs rounded-full px-4 py-1.5 shrink-0 ${following ? 'border border-gray-200 text-gray-600' : 'bg-blue-600 text-white'}`}>{following ? '팔로잉' : '팔로우'}</button>
+          )}
         </div>
       </div>
 
