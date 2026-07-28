@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ensurePlace } from '@/lib/place'
+import Link from 'next/link'
 
 const CATEGORIES = [
   { label: '반려동물 동반 카페', keyword: '애견동반 카페' },
@@ -146,12 +147,9 @@ export default function MapPage() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-[calc(100vh-56px)]">
       <aside className="w-60 shrink-0 border-r bg-white text-gray-900 p-4 overflow-y-auto">
-        <h1 className="font-bold text-lg mb-2">🐾 멍냥플레이스</h1>
-        <a href="/my" className="block text-sm text-blue-600">⭐ 내 폴더 관리</a>
-        <a href="/browse" className="block text-sm text-blue-600 mb-3">🔎 카테고리 둘러보기</a>
-
+        
         <p className="text-xs text-gray-500 mb-1 mt-2">카테고리 둘러보기</p>
         <ul className="flex flex-col gap-1 mb-4">
           {CATEGORIES.map((cat) => (
@@ -171,7 +169,7 @@ export default function MapPage() {
               {folders.length === 0 && <li className="text-xs text-gray-400">저장한 폴더가 없어요</li>}
               {folders.map((f) => (
                 <li key={f.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <Link href={`/folder/${f.id}`} className="flex items-center gap-2 min-w-0 hover:opacity-70">
                     <span className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs"
                       style={{ backgroundColor: f.color || '#3b82f6' }}>{f.icon || '📍'}</span>
                     <div className="min-w-0">
@@ -180,7 +178,7 @@ export default function MapPage() {
                         {f.is_public ? '🌐 공개' : '🔒 비공개'} · {f.saved_places?.[0]?.count ?? 0}개
                       </div>
                     </div>
-                  </div>
+                  </Link>
                   <button onClick={() => toggleFolder(f)}
                     className={`w-10 h-6 rounded-full shrink-0 relative transition ${folderOn[f.id] ? 'bg-blue-600' : 'bg-gray-300'}`}>
                     <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${folderOn[f.id] ? 'left-[18px]' : 'left-0.5'}`} />
