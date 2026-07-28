@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
 import FolderEditModal from '@/components/FolderEditModal'
+import ShapeIcon from '@/components/ShapeIcon'
 
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
@@ -28,7 +29,7 @@ export default function FolderDetail() {
     const { data: f } = await supabase.from('folders').select('*').eq('id', id).single()
     setFolder(f)
     if (f) {
-      const { data: its } = await supabase.from('saved_places').select('id, color, label, places(*)').eq('folder_id', id)
+      const { data: its } = await supabase.from('saved_places').select('id, color, label, note, places(*)').eq('folder_id', id)
       setItems(its ?? [])
       if (u.user && u.user.id !== f.user_id) {
         const { data: sub } = await supabase.from('folder_subscriptions').select('id').eq('user_id', u.user.id).eq('folder_id', id).maybeSingle()
@@ -82,7 +83,7 @@ export default function FolderDetail() {
       <Link href={isOwner ? '/my' : '/map'} className="text-sm text-gray-400">← 뒤로</Link>
 
       <div className="flex items-center gap-3 mt-2">
-        <span className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0 bg-gray-100">{folder.icon || '📍'}</span>
+        <span className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-gray-100"><ShapeIcon shape={folder.icon} size={26} /></span>
         <div className="min-w-0">
           <h1 className="text-2xl font-extrabold truncate">{folder.name}</h1>
           <p className="text-xs text-gray-400">{folder.is_public ? '🌐 공개' : '🔒 비공개'} · {items.length}곳</p>
@@ -125,7 +126,7 @@ export default function FolderDetail() {
                   <span className="w-4 h-4 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: it.color || '#3b82f6' }} />
                   <span className="min-w-0">
                     <span className="font-bold text-sm block truncate">{it.label || it.places.name}</span>
-                    <span className="text-xs text-gray-400 block truncate">{formatAddress(it.places.address)}</span>
+                    {it.note && <span className="text-xs text-gray-500 block truncate">💬 {it.note}</span>}
                   </span>
                 </Link>
                 {isOwner && (

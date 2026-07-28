@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
+import ShapeIcon from '@/components/ShapeIcon'
+import { SHAPES, shapeSvg } from '@/lib/shapes'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const TAG_OPTIONS = ['강아지 음료 O', '대형견 가능', '자유 산책 가능', '마당 있음', '실내 동반 가능', '매장 강아지 있음', '반려동물 전용 메뉴', '무게 제한 있음']
@@ -41,8 +43,14 @@ export default function MapPage() {
   const [saveFolders, setSaveFolders] = useState([])
   const [newFolder, setNewFolder] = useState('')
   const [newPublic, setNewPublic] = useState(false)
-  const [newIcon, setNewIcon] = useState('📍')
+  const [newIcon, setNewIcon] = useState('star')
   const [saveColor, setSaveColor] = useState('#3b82f6')
+  const [saveStep, setSaveStep] = useState('select')
+  const [chosenFolder, setChosenFolder] = useState(null)
+  const [svLabel, setSvLabel] = useState('')
+  const [svNote, setSvNote] = useState('')
+  const [svColor, setSvColor] = useState('#3b82f6')
+  const [newDesc, setNewDesc] = useState('')
 
   const [register, setRegister] = useState(false)
   const [regPos, setRegPos] = useState(null)
@@ -139,7 +147,7 @@ export default function MapPage() {
   }
 
   function circleHtml(color, icon) {
-    return `<div style="width:32px;height:32px;background:${color};border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 1px 4px rgba(0,0,0,.4)">${icon}</div>`
+    return `<div style="width:32px;height:32px;background:${color};border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${shapeSvg(icon, '#ffffff', 16)}</div>`
   }
 
   function recomputeHidden() {
@@ -184,19 +192,26 @@ export default function MapPage() {
 
   async function openSave() {
     if (!user) { alert('로그인이 필요해요'); return }
-    const { data } = await supabase.from('folders').select('*').eq('user_id', user.id).order('created_at')
-    setSaveFolders(data ?? []); setShowSave(true)
+    const { data } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', user.id).order('created_at')
+    setSaveFolders(data ?? []); setSaveStep('select'); setShowSave(true)
   }
   async function createFolder() {
-    if (!newFolder.trim()) return
-    const { data, error } = await supabase.from('folders').insert({ user_id: user.id, name: newFolder, is_public: newPublic, icon: newIcon }).select().single()
+    if (!newFolder.trim()) { alert('그룹 이름을 입력해주세요'); return }
+    const { error } = await supabase.from('folders').insert({ user_id: user.id, name: newFolder, is_public: newPublic, icon: newIcon, description: newDesc })
     if (error) { alert(error.message); return }
-    setSaveFolders([...saveFolders, data]); setNewFolder(''); setNewPublic(false); setNewIcon('📍'); loadFolders(user.id)
+    setNewFolder(''); setNewPublic(false); setNewIcon('star'); setNewDesc('')
+    const { data } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', user.id).order('created_at')
+    setSaveFolders(data ?? []); loadFolders(user.id); setSaveStep('select')
   }
-  async function saveToFolder(folderId) {
-    const { error } = await supabase.from('saved_places').insert({ folder_id: folderId, place_id: selected.id, color: saveColor })
+  function chooseFolder(f) {
+    setChosenFolder(f); setSvLabel(selected.name); setSvNote(''); setSvColor('#3b82f6'); setSaveStep('detail')
+  }
+  async function confirmSave() {
+    const { error } = await supabase.from('saved_places').insert({
+      folder_id: chosenFolder.id, place_id: selected.id, label: svLabel, note: svNote, color: svColor,
+    })
     if (error) { alert('저장 실패: ' + error.message); return }
-    alert('저장했어요! 🐾'); setShowSave(false); loadFolders(user.id)
+    setShowSave(false); loadFolders(user.id); alert('저장했어요! 🐾')
   }
 
   async function searchForRegister(e) {
@@ -286,7 +301,7 @@ export default function MapPage() {
               {folders.map((f) => (
                 <li key={f.id} className="flex items-center justify-between">
                   <Link href={`/folder/${f.id}`} className="flex items-center gap-2 min-w-0 hover:opacity-70">
-                    <span className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-sm bg-gray-50 border border-gray-200">{f.icon || '📍'}</span>
+                    <span className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center bg-gray-50 border border-gray-200"><ShapeIcon shape={f.icon} size={16} /></span>
                     <div className="min-w-0">
                       <div className="text-sm truncate">{f.name}</div>
                       <div className="text-[11px] text-gray-400">{f.is_public ? '🌐 공개' : '🔒 비공개'} · {f.saved_places?.[0]?.count ?? 0}개</div>
@@ -306,7 +321,7 @@ export default function MapPage() {
                   {subFolders.map((f) => (
                     <li key={f.id} className="flex items-center justify-between">
                       <Link href={`/folder/${f.id}`} className="flex items-center gap-2 min-w-0 hover:opacity-70">
-                        <span className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-sm bg-gray-50 border border-gray-200">{f.icon || '📍'}</span>
+                        <span className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center bg-gray-50 border border-gray-200"><ShapeIcon shape={f.icon} size={16} /></span>
                         <div className="min-w-0">
                           <div className="text-sm truncate">{f.name}</div>
                           <div className="text-[11px] text-gray-400">구독 · {f.saved_places?.[0]?.count ?? 0}개</div>
@@ -397,39 +412,82 @@ export default function MapPage() {
         )}
 
         {showSave && (
-          <div className="absolute inset-0 z-20 bg-black/40 flex items-center justify-center" onClick={() => setShowSave(false)}>
-            <div className="w-80 bg-white text-gray-900 rounded-xl p-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="font-bold">폴더에 저장</h2>
-                <button onClick={() => setShowSave(false)} className="text-gray-400">✕</button>
-              </div>
-              <p className="text-xs text-gray-500 mb-1">핀 색상</p>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {COLORS.map((c) => (
-                  <button key={c} onClick={() => setSaveColor(c)} className="w-7 h-7 rounded-full border-2"
-                    style={{ backgroundColor: c, borderColor: saveColor === c ? '#111' : 'transparent' }} />
-                ))}
-              </div>
-              <ul className="flex flex-col gap-1 max-h-40 overflow-y-auto mb-3">
-                {saveFolders.length === 0 && <li className="text-xs text-gray-500">아직 폴더가 없어요.</li>}
-                {saveFolders.map((f) => (
-                  <li key={f.id} className="flex justify-between items-center border rounded px-3 py-2">
-                    <span className="text-sm">{f.icon || '📍'} {f.name} {f.is_public ? '🌐' : '🔒'}</span>
-                    <button onClick={() => saveToFolder(f.id)} className="text-xs bg-blue-600 text-white rounded px-2 py-1">담기</button>
-                  </li>
-                ))}
-              </ul>
-              <div className="border-t pt-3 flex flex-col gap-2">
-                <input value={newFolder} onChange={(e) => setNewFolder(e.target.value)} placeholder="새 폴더 이름" className="border rounded px-2 py-1 bg-white text-gray-900" />
-                <div className="flex flex-wrap gap-1">
-                  {ICONS.map((ic) => (
-                    <button key={ic} type="button" onClick={() => setNewIcon(ic)}
-                      className={`w-8 h-8 rounded-lg ${newIcon === ic ? 'bg-blue-100 ring-2 ring-blue-400' : 'bg-gray-50 border border-gray-200'}`}>{ic}</button>
-                  ))}
-                </div>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newPublic} onChange={(e) => setNewPublic(e.target.checked)} /> 공개</label>
-                <button onClick={createFolder} className="bg-gray-800 text-white rounded px-3 py-2 text-sm">+ 폴더 만들기</button>
-              </div>
+          <div className="absolute inset-0 z-20 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowSave(false)}>
+            <div className="w-full max-w-sm bg-white text-gray-900 rounded-2xl p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+
+              {saveStep === 'select' && (
+                <>
+                  <div className="flex justify-between items-center mb-3">
+                    <h2 className="font-bold text-lg">그룹 선택</h2>
+                    <button onClick={() => setShowSave(false)} className="text-gray-400 text-lg">✕</button>
+                  </div>
+                  <button onClick={() => setSaveStep('create')} className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-3 mb-2 text-blue-600 font-medium">
+                    <span className="w-9 h-9 rounded-lg border border-blue-200 flex items-center justify-center text-lg">＋</span>
+                    새 그룹 추가
+                  </button>
+                  <ul className="flex flex-col gap-1">
+                    {saveFolders.map((f) => (
+                      <li key={f.id}>
+                        <button onClick={() => chooseFolder(f)} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-gray-50 text-left">
+                          <span className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center"><ShapeIcon shape={f.icon} size={18} /></span>
+                          <span className="min-w-0">
+                            <span className="block font-semibold text-sm truncate">{f.name}</span>
+                            <span className="block text-[11px] text-gray-400">개수 {f.saved_places?.[0]?.count ?? 0} · {f.is_public ? '🌐 공개' : '🔒 비공개'}</span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {saveStep === 'create' && (
+                <>
+                  <div className="flex justify-between items-center mb-4">
+                    <button onClick={() => setSaveStep('select')} className="text-gray-400 text-sm">← 뒤로</button>
+                    <h2 className="font-bold text-lg">새 그룹 추가</h2>
+                    <button onClick={() => setShowSave(false)} className="text-gray-400 text-lg">✕</button>
+                  </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-semibold text-sm">공개 허용</span>
+                    <div className="flex bg-gray-100 rounded-full p-1">
+                      <button onClick={() => setNewPublic(true)} className={`px-4 py-1.5 rounded-full text-sm ${newPublic ? 'bg-blue-600 text-white' : 'text-gray-500'}`}>공개</button>
+                      <button onClick={() => setNewPublic(false)} className={`px-4 py-1.5 rounded-full text-sm ${!newPublic ? 'bg-blue-600 text-white' : 'text-gray-500'}`}>🔒 비공개</button>
+                    </div>
+                  </div>
+                  <input value={newFolder} onChange={(e) => setNewFolder(e.target.value)} placeholder="그룹 이름" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2" />
+                  <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="설명 (선택)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
+                  <p className="font-semibold text-sm mb-2">모양 선택</p>
+                  <div className="grid grid-cols-4 gap-2 mb-5">
+                    {SHAPES.map((s) => (
+                      <button key={s} type="button" onClick={() => setNewIcon(s)} className={`h-11 rounded-xl flex items-center justify-center ${newIcon === s ? 'bg-blue-600' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                        <ShapeIcon shape={s} color={newIcon === s ? '#ffffff' : '#2563eb'} size={20} />
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={createFolder} className="w-full bg-blue-600 text-white rounded-xl py-3 font-semibold">완료</button>
+                </>
+              )}
+
+              {saveStep === 'detail' && chosenFolder && (
+                <>
+                  <div className="flex justify-between items-center mb-3">
+                    <button onClick={() => setSaveStep('select')} className="text-gray-400 text-sm">← 뒤로</button>
+                    <h2 className="font-bold text-lg">즐겨찾기 저장</h2>
+                    <button onClick={() => setShowSave(false)} className="text-gray-400 text-lg">✕</button>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-3 flex items-center gap-1"><ShapeIcon shape={chosenFolder.icon} size={14} /> {chosenFolder.name} 에 저장</p>
+                  <input value={svLabel} onChange={(e) => setSvLabel(e.target.value)} placeholder="장소 이름" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2" />
+                  <input value={svNote} onChange={(e) => setSvNote(e.target.value)} placeholder="설명 (선택)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
+                  <p className="text-xs text-gray-500 mb-1">핀 색상</p>
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    {COLORS.map((c) => (
+                      <button key={c} onClick={() => setSvColor(c)} className="w-8 h-8 rounded-full border-2" style={{ backgroundColor: c, borderColor: svColor === c ? '#111' : 'transparent' }} />
+                    ))}
+                  </div>
+                  <button onClick={confirmSave} className="w-full bg-blue-600 text-white rounded-xl py-3 font-semibold">완료</button>
+                </>
+              )}
             </div>
           </div>
         )}

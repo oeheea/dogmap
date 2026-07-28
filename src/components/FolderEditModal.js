@@ -2,14 +2,14 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-
-const ICONS = ['📍', '⭐', '❤️', '🐶', '🐾', '☕', '🍽️', '🌳', '🏠', '🔥']
+import { SHAPES } from '@/lib/shapes'
+import ShapeIcon from '@/components/ShapeIcon'
 
 export default function FolderEditModal({ folder, onClose, onSaved, onDeleted }) {
   const [name, setName] = useState(folder.name)
   const [description, setDescription] = useState(folder.description ?? '')
   const [isPublic, setIsPublic] = useState(folder.is_public)
-  const [icon, setIcon] = useState(folder.icon ?? '📍')
+  const [icon, setIcon] = useState(SHAPES.includes(folder.icon) ? folder.icon : 'star')
 
   async function save() {
     if (!name.trim()) { alert('이름을 입력해주세요'); return }
@@ -47,10 +47,12 @@ export default function FolderEditModal({ folder, onClose, onSaved, onDeleted })
           className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-5" />
 
         <p className="font-semibold text-sm mb-2">모양 선택</p>
-        <div className="grid grid-cols-5 gap-2 mb-6">
-          {ICONS.map((ic) => (
-            <button key={ic} onClick={() => setIcon(ic)}
-              className={`h-12 rounded-xl text-xl flex items-center justify-center transition ${icon === ic ? 'bg-blue-100 ring-2 ring-blue-500' : 'bg-gray-50 hover:bg-gray-100'}`}>{ic}</button>
+        <div className="grid grid-cols-4 gap-2 mb-6">
+          {SHAPES.map((s) => (
+            <button key={s} type="button" onClick={() => setIcon(s)}
+              className={`h-12 rounded-xl flex items-center justify-center transition ${icon === s ? 'bg-blue-600' : 'bg-gray-50 hover:bg-gray-100'}`}>
+              <ShapeIcon shape={s} color={icon === s ? '#ffffff' : '#2563eb'} size={22} />
+            </button>
           ))}
         </div>
 

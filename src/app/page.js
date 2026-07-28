@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
+import ShapeIcon from '@/components/ShapeIcon'
 import Loading from '@/components/Loading'
 
 export default function Home() {
@@ -66,7 +67,7 @@ export default function Home() {
               <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
                 {folders.map((f) => (
                   <Link key={f.id} href={`/folder/${f.id}`} className="shrink-0 bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">{f.icon || '📍'}</span>
+                    <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><ShapeIcon shape={f.icon} size={18} /></span>
                     <span className="text-sm font-medium whitespace-nowrap">{f.name} <span className="text-gray-400">{f.saved_places?.[0]?.count ?? 0}</span></span>
                   </Link>
                 ))}

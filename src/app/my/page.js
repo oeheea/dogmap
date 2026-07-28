@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import ShapeIcon from '@/components/ShapeIcon'
 import Loading from '@/components/Loading'
 
 export default function MyPage() {
@@ -29,7 +30,7 @@ export default function MyPage() {
   const Row = (f, tag) => (
     <li key={f.id}>
       <Link href={`/folder/${f.id}`} className="flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition">
-        <span className="w-11 h-11 rounded-full flex items-center justify-center text-lg shrink-0 bg-gray-100">{f.icon || '📍'}</span>
+        <span className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-gray-100"><ShapeIcon shape={f.icon} size={22} /></span>
         <div className="min-w-0 flex-1">
           <div className="font-bold truncate">{f.name}</div>
           <div className="text-xs text-gray-400">{tag || (f.is_public ? '🌐 공개' : '🔒 비공개')} · {f.saved_places?.[0]?.count ?? 0}곳</div>
