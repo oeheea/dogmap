@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
+import CameraCapture from '@/components/CameraCapture'
 
 export default function MomentsPage() {
   const [user, setUser] = useState(null)
   const [moments, setMoments] = useState([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
 
   const [file, setFile] = useState(null)
   const [caption, setCaption] = useState('')
@@ -108,6 +110,7 @@ export default function MomentsPage() {
         ))}
       </ul>
 
+      {showCamera && <CameraCapture onCapture={(f) => { setFile(f); setShowCamera(false) }} onClose={() => setShowCamera(false)} />}
       {showNew && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowNew(false)}>
           <div className="w-full max-w-sm bg-white rounded-2xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -121,6 +124,7 @@ export default function MomentsPage() {
                 : <div className="w-full h-40 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">📷 사진 선택</div>}
               <input type="file" accept="image/*" className="hidden" onChange={(e) => setFile(e.target.files[0])} />
             </label>
+            <button type="button" onClick={() => setShowCamera(true)} className="w-full mb-3 border border-blue-200 text-blue-600 rounded-xl py-2 text-sm">📷 카메라로 찍기 (구도 가이드)</button>
             <textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="문구 입력..." rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm mb-2" />
             {place ? (
               <div className="flex items-center gap-2 mb-3 text-sm">

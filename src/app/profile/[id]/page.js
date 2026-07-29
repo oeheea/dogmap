@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
 import ShapeIcon from '@/components/ShapeIcon'
 import StarRating from '@/components/StarRating'
+import PawStampUploader from '@/components/PawStampUploader'
 
 export default function ProfilePage() {
   const { id } = useParams()
@@ -115,6 +116,17 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {isOwner && (
+        <div className="mt-4">
+          <PawStampUploader
+            userId={id}
+            current={profile.paw_stamp_url}
+            currentColor={profile.paw_color}
+            onDone={(url, color) => setProfile((p) => ({ ...p, paw_stamp_url: url, paw_color: color }))}
+          />
+        </div>
+      )}
 
       <div className="flex bg-gray-100 rounded-xl p-1 mt-4 gap-1">
         <TabBtn k="folders" label="폴더" n={folders.length} />

@@ -27,16 +27,29 @@ export default function WalkPage() {
   const watchRef = useRef(null)
   const timerRef = useRef(null)
   const startTimeRef = useRef(0)
+  const pawRef = useRef(null)
+  const pawCountRef = useRef(0)
 
   const [user, setUser] = useState(null)
+  const [paw, setPaw] = useState(null)
   const [tracking, setTracking] = useState(false)
   const [distance, setDistance] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [walks, setWalks] = useState([])
   const [loading, setLoading] = useState(true)
 
+  useEffect(() => { pawRef.current = paw }, [paw])
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => { setUser(data.user); if (data.user) loadWalks(data.user.id); setLoading(false) })
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user)
+      if (data.user) {
+        loadWalks(data.user.id)
+        const { data: pr } = await supabase.from('profiles').select('paw_stamp_url, paw_color').eq('id', data.user.id).single()
+        if (pr?.paw_stamp_url) setPaw({ url: pr.paw_stamp_url, color: pr.paw_color || '#2563eb' })
+      }
+      setLoading(false)
+    })
     const KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY
     function initMap() {
       window.kakao.maps.load(() => {
@@ -62,9 +75,14 @@ export default function WalkPage() {
     setWalks(data ?? [])
   }
 
-  function dropPaw(point) {
+  function dropPaw(point, angle = 0, px = 0, py = 0) {
+    const p = pawRef.current
     const el = document.createElement('div')
-    el.innerHTML = shapeSvg('paw', '#2563eb', 22)
+    if (p?.url) {
+      el.innerHTML = `<div style="width:34px;height:34px;border-radius:9999px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;transform:translate(${px}px,${py}px) rotate(${angle}deg);"><img src="${p.url}" style="width:26px;height:26px;object-fit:contain;display:block;" /></div>`
+    } else {
+      el.innerHTML = shapeSvg('paw', '#2563eb', 22)
+    }
     const ov = new window.kakao.maps.CustomOverlay({ position: point, content: el, xAnchor: 0.5, yAnchor: 0.5 })
     ov.setMap(mapObjRef.current)
     pawsRef.current.push(ov)
@@ -78,7 +96,20 @@ export default function WalkPage() {
     if (polylineRef.current) polylineRef.current.setPath(pathRef.current)
     if (prev) { distRef.current += haversine(prev.getLat(), prev.getLng(), lat, lng); setDistance(distRef.current) }
     if (!lastPawRef.current || haversine(lastPawRef.current.getLat(), lastPawRef.current.getLng(), lat, lng) >= 15) {
-      dropPaw(point); lastPawRef.current = point
+      const base = lastPawRef.current || prev
+      let angle = 0, px = 0, py = 0
+      if (base) {
+        const dLat = lat - base.getLat(), dLng = lng - base.getLng()
+        const dx = dLng, dy = -dLat
+        const norm = Math.hypot(dx, dy) || 1
+        angle = Math.atan2(dx, -dy) * 180 / Math.PI
+        pawCountRef.current += 1
+        const sign = pawCountRef.current % 2 ? 1 : -1
+        px = (-dy / norm) * 7 * sign
+        py = (dx / norm) * 7 * sign
+      }
+      dropPaw(point, angle, px, py)
+      lastPawRef.current = point
     }
     mapObjRef.current.setCenter(point)
   }
@@ -86,11 +117,11 @@ export default function WalkPage() {
   function startWalk() {
     if (!user) { alert('로그인이 필요해요'); return }
     if (!navigator.geolocation) { alert('이 브라우저는 위치를 지원하지 않아요'); return }
-    pathRef.current = []; distRef.current = 0; lastPawRef.current = null
+    pathRef.current = []; distRef.current = 0; lastPawRef.current = null; pawCountRef.current = 0
     setDistance(0); setElapsed(0)
     pawsRef.current.forEach((o) => o.setMap(null)); pawsRef.current = []
     if (polylineRef.current) polylineRef.current.setMap(null)
-    polylineRef.current = new window.kakao.maps.Polyline({ strokeWeight: 5, strokeColor: '#2563eb', strokeOpacity: 0.85 })
+    polylineRef.current = new window.kakao.maps.Polyline({ strokeWeight: 5, strokeColor: pawRef.current?.color || '#2563eb', strokeOpacity: 0.85 })
     polylineRef.current.setMap(mapObjRef.current)
     setTracking(true)
     startTimeRef.current = Date.now()
@@ -112,7 +143,6 @@ export default function WalkPage() {
       alert('기록된 경로가 없어요 (야외에서 이동하며 해보세요)')
     }
   }
-
 
   return (
     <div className="max-w-lg mx-auto">
@@ -146,7 +176,6 @@ export default function WalkPage() {
                       <div className="font-bold text-sm">{fmtDist(w.distance)} · {fmtTime(w.duration_sec)}</div>
                       <div className="text-[11px] text-gray-400">{new Date(w.created_at).toLocaleString('ko-KR')}</div>
                     </div>
-                    <span className="text-blue-500 text-lg">🐾</span>
                   </Link>
                 </li>
               ))}
