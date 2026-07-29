@@ -46,7 +46,7 @@ export default function WalkPage() {
       if (data.user) {
         loadWalks(data.user.id)
         const { data: pr } = await supabase.from('profiles').select('paw_stamp_url, paw_color').eq('id', data.user.id).single()
-        if (pr?.paw_stamp_url) setPaw({ url: pr.paw_stamp_url, color: pr.paw_color || '#2563eb' })
+        if (pr) setPaw({ url: pr.paw_stamp_url || null, color: pr.paw_color || '#2563eb' })
       }
       setLoading(false)
     })
@@ -75,17 +75,20 @@ export default function WalkPage() {
     setWalks(data ?? [])
   }
 
-  function dropPaw(point, angle = 0, px = 0, py = 0) {
+  function dropPaw(point) {
     const p = pawRef.current
-    const el = document.createElement('div')
     if (p?.url) {
-      el.innerHTML = `<div style="width:34px;height:34px;border-radius:9999px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;transform:translate(${px}px,${py}px) rotate(${angle}deg);"><img src="${p.url}" style="width:26px;height:26px;object-fit:contain;display:block;" /></div>`
+      const img = new window.kakao.maps.MarkerImage(p.url, new window.kakao.maps.Size(40, 40))
+      const m = new window.kakao.maps.Marker({ position: point, image: img })
+      m.setMap(mapObjRef.current)
+      pawsRef.current.push(m)
     } else {
-      el.innerHTML = shapeSvg('paw', '#2563eb', 22)
+      const el = document.createElement('div')
+      el.innerHTML = shapeSvg('paw', p?.color || '#2563eb', 22)
+      const ov = new window.kakao.maps.CustomOverlay({ position: point, content: el, xAnchor: 0.5, yAnchor: 0.5 })
+      ov.setMap(mapObjRef.current)
+      pawsRef.current.push(ov)
     }
-    const ov = new window.kakao.maps.CustomOverlay({ position: point, content: el, xAnchor: 0.5, yAnchor: 0.5 })
-    ov.setMap(mapObjRef.current)
-    pawsRef.current.push(ov)
   }
 
   function onPos(pos) {
