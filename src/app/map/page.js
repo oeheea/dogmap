@@ -14,6 +14,15 @@ const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동�
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 const ICONS = ['📍', '⭐', '❤️', '🐶', '🐾', '☕', '🍽️', '🌳', '🏠', '🔥']
 
+function catTile(cat) {
+  const c = cat || ''
+  if (c.includes('애견카페')) return { icon: '🐶', cls: 'bg-orange-50' }
+  if (c.includes('카페')) return { icon: '☕', cls: 'bg-orange-50' }
+  if (c.includes('밥집') || c.includes('식당')) return { icon: '🍽️', cls: 'bg-amber-50' }
+  if (c.includes('펜션') || c.includes('호텔')) return { icon: '🏡', cls: 'bg-green-50' }
+  return { icon: '📍', cls: 'bg-gray-100' }
+}
+
 export default function MapPage() {
   const router = useRouter()
   const mapRef = useRef(null)
@@ -262,7 +271,7 @@ export default function MapPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-56px)] relative">
+    <div className="flex h-[calc(100vh-56px)] relative -mb-20">
       {sidebarOpen && <div className="sm:hidden absolute inset-0 bg-black/30 z-30" onClick={() => setSidebarOpen(false)} />}
       <aside className={`w-64 sm:w-60 shrink-0 border-r bg-white text-gray-900 p-4 overflow-y-auto absolute sm:static inset-y-0 left-0 z-40 transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0`}>
         <button onClick={() => setSidebarOpen(false)} className="sm:hidden absolute top-2 right-2 text-gray-400 text-lg">✕</button>
@@ -384,7 +393,7 @@ export default function MapPage() {
         )}
 
         {register && regPos && (
-          <form onSubmit={saveRegister} className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-80 bg-white text-gray-900 rounded-2xl shadow-xl p-4 flex flex-col gap-2">
+          <form onSubmit={saveRegister} className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 w-80 bg-white text-gray-900 rounded-2xl shadow-xl p-4 flex flex-col gap-2">
             <h2 className="font-bold">새 장소 등록</h2>
             <input value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} placeholder="장소 이름" required className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
             <select value={regForm.category} onChange={(e) => setRegForm({ ...regForm, category: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
@@ -400,23 +409,29 @@ export default function MapPage() {
         )}
 
         {selected && !register && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-80 bg-white text-gray-900 rounded-2xl shadow-xl p-4">
-            <div className="flex justify-between items-start">
-              <div className="min-w-0">
-                <div className="font-bold text-base truncate">{selected.name}</div>
-                <div className="text-xs text-gray-500 truncate">{formatAddress(selected.address)}</div>
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 w-80 max-w-[90vw] bg-white text-gray-900 rounded-2xl shadow-xl p-4">
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex gap-3 min-w-0">
+                <span className={`w-12 h-12 rounded-2xl ${catTile(selected.category).cls} flex items-center justify-center text-xl shrink-0`}>{catTile(selected.category).icon}</span>
+                <div className="min-w-0">
+                  <div className="font-bold text-base truncate">{selected.name}</div>
+                  <div className="text-xs text-gray-500 truncate">{formatAddress(selected.address)}</div>
+                  <div className="mt-1 text-xs">
+                    {stats?.count > 0
+                      ? <span className="text-amber-500 font-semibold">★ {stats.avg} <span className="text-gray-400 font-normal">· 후기 {stats.count}</span></span>
+                      : <span className="text-gray-400">아직 후기가 없어요</span>}
+                  </div>
+                </div>
               </div>
-              <button onClick={() => setSelected(null)} className="text-gray-400 text-lg leading-none">✕</button>
+              <button onClick={() => setSelected(null)} className="text-gray-400 text-lg leading-none shrink-0">✕</button>
             </div>
-            <div className="mt-1.5 text-sm">
-              {stats?.count > 0 ? <span className="text-amber-500 font-semibold">★ {stats.avg} <span className="text-gray-400 font-normal">· 후기 {stats.count}</span></span> : <span className="text-gray-400 text-xs">아직 후기가 없어요</span>}
+
+            <div className="flex flex-wrap gap-1 mt-2 items-center">
+              <span className="text-[11px] bg-blue-50 text-blue-700 rounded-full px-2 py-0.5">{selected.category}</span>
+              {(selected.tags ?? []).slice(0, 3).map((t) => <span key={t} className="text-[11px] bg-emerald-50 text-emerald-700 rounded-full px-2 py-0.5">{t}</span>)}
+              {(selected.tags ?? []).length > 3 && <span className="text-[11px] text-gray-400">+{selected.tags.length - 3}</span>}
             </div>
-            <span className="inline-block mt-1.5 text-xs bg-blue-50 text-blue-700 rounded-full px-2 py-0.5">{selected.category}</span>
-            {(selected.tags ?? []).length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {selected.tags.map((t) => <span key={t} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">#{t}</span>)}
-              </div>
-            )}
+
             {photos.length > 0 && (
               <div className="flex gap-1 mt-2 overflow-x-auto">
                 {photos.map((u, i) => <img key={i} src={u} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />)}
@@ -429,7 +444,7 @@ export default function MapPage() {
           </div>
         )}
 
-        {reportTarget && <ReportModal placeId={reportTarget.id} placeName={reportTarget.name} onClose={() => setReportTarget(null)} />}
+        {reportTarget && <ReportModal place={reportTarget} user={user} onClose={() => setReportTarget(null)} />}
         {showSave && (
           <div className="absolute inset-0 z-20 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowSave(false)}>
             <div className="w-full max-w-sm bg-white text-gray-900 rounded-2xl p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>

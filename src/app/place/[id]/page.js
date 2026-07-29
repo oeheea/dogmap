@@ -36,6 +36,12 @@ export default function PlaceDetail() {
     if (placeData) setCat(placeData.category ?? '기타')
     const { data: u } = await supabase.auth.getUser()
 
+    // 임계값(설정) 읽기
+    const { data: st } = await supabase.from('app_settings').select('key, value')
+    const cthr = Number(st?.find((s) => s.key === 'tag_confirm')?.value ?? 5)
+    const dthr = Number(st?.find((s) => s.key === 'tag_delete')?.value ?? 5)
+    setThr({ confirm: cthr, delete: dthr })
+
     // 태그 투표 집계 (동의/삭제제안)
     const { data: pt } = await supabase.from('place_tags').select('tag, user_id, stance').eq('place_id', id)
     const m = {}
@@ -48,7 +54,7 @@ export default function PlaceDetail() {
       }
     }
     const list = Object.values(m)
-      .map((x) => ({ tag: x.tag, up: x.up.size, down: x.down.size, confirmed: x.down.size < 5 && (x.seeded || x.up.size >= 5), removed: x.down.size >= 5, mine: x.mine }))
+      .map((x) => ({ tag: x.tag, up: x.up.size, down: x.down.size, confirmed: x.down.size < dthr && (x.seeded || x.up.size >= cthr), removed: x.down.size >= dthr, mine: x.mine }))
       .sort((a, b) => (b.confirmed - a.confirmed) || a.tag.localeCompare(b.tag))
     setTagList(list)
 
@@ -173,7 +179,7 @@ export default function PlaceDetail() {
           </div>
 
           <div className="mt-3">
-            <div className="text-xs font-semibold text-gray-400 mb-1.5">세부 특징 <span className="font-normal text-gray-300">· 👍5명이면 확정 · 🗑️5명이면 삭제</span></div>
+            <div className="text-xs font-semibold text-gray-400 mb-1.5">세부 특징 <span className="font-normal text-gray-300">· 👍{thr.confirm}명이면 확정 · 🗑️{thr.delete}명이면 삭제</span></div>
             <div className="flex flex-wrap gap-1.5">
               {tagList.length === 0 && <span className="text-xs text-gray-300">아직 특징이 없어요. 아래에서 추가해보세요.</span>}
               {tagList.map((t) => (
@@ -181,7 +187,7 @@ export default function PlaceDetail() {
                   #{t.tag}
                   {t.removed ? <span className="text-[10px] no-underline">삭제됨</span> : (<>
                     {!t.confirmed && <span className="text-[10px] text-amber-500">제안·{t.up}</span>}
-                    {t.down > 0 && <span className="text-[10px] text-red-400">삭제 {t.down}/5</span>}
+                    {t.down > 0 && <span className="text-[10px] text-red-400">삭제 {t.down}/{thr.delete}</span>}
                   </>)}
                   {user && (
                     <span className="flex items-center gap-1">
