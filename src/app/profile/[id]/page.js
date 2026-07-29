@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const [folders, setFolders] = useState([])
   const [reviews, setReviews] = useState([])
   const [posts, setPosts] = useState([])
+  const [moments, setMoments] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('folders')
   const [editing, setEditing] = useState(false)
@@ -39,6 +40,8 @@ export default function ProfilePage() {
     } else setReviews([])
     const { data: ps } = await supabase.from('posts').select('*, comments(count)').eq('user_id', id).order('created_at', { ascending: false })
     setPosts(ps ?? [])
+    const { data: mm } = await supabase.from('moments').select('id, image_url').eq('user_id', id).order('created_at', { ascending: false })
+    setMoments(mm ?? [])
 
     const { count: followers } = await supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', id)
     const { count: followingCnt } = await supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', id)
@@ -114,6 +117,7 @@ export default function ProfilePage() {
 
       <div className="flex bg-gray-100 rounded-xl p-1 mt-4 gap-1">
         <TabBtn k="folders" label="폴더" n={folders.length} />
+        <TabBtn k="moments" label="모먼트" n={moments.length} />
         <TabBtn k="reviews" label="후기" n={showReviews ? reviews.length : ''} />
         <TabBtn k="posts" label="글" n={posts.length} />
       </div>
@@ -131,6 +135,17 @@ export default function ProfilePage() {
               </li>
             ))}
           </ul>
+        )}
+        {tab === 'moments' && (
+          moments.length === 0 ? <p className="text-sm text-gray-400">아직 올린 사진이 없어요.</p> : (
+            <div className="grid grid-cols-3 gap-1">
+              {moments.map((mm) => (
+                <Link key={mm.id} href={`/moments/${mm.id}`} className="aspect-square block">
+                  <img src={mm.image_url} alt="" className="w-full h-full object-cover rounded" />
+                </Link>
+              ))}
+            </div>
+          )
         )}
         {tab === 'reviews' && (
           !showReviews ? <p className="text-sm text-gray-400">이 사용자가 후기를 비공개로 설정했어요.</p> : (

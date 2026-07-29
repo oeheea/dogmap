@@ -20,7 +20,7 @@ export default function MomentsPage() {
 
   async function load() {
     const { data: u } = await supabase.auth.getUser(); setUser(u.user)
-    const { data: ms } = await supabase.from('moments').select('*, places(name), moment_likes(count)').order('created_at', { ascending: false }).limit(50)
+    const { data: ms } = await supabase.from('moments').select('*, places(name), moment_likes(count), moment_comments(count)').order('created_at', { ascending: false }).limit(50)
     const list = ms ?? []
     let likedSet = new Set()
     if (u.user) {
@@ -33,7 +33,7 @@ export default function MomentsPage() {
       const { data: profs } = await supabase.from('profiles').select('id, nickname, avatar_url').in('id', ids)
       pmap = Object.fromEntries((profs ?? []).map((p) => [p.id, p]))
     }
-    setMoments(list.map((m) => ({ ...m, liked: likedSet.has(m.id), likeCount: m.moment_likes?.[0]?.count ?? 0, author: pmap[m.user_id] })))
+    setMoments(list.map((m) => ({ ...m, liked: likedSet.has(m.id), likeCount: m.moment_likes?.[0]?.count ?? 0, commentCount: m.moment_comments?.[0]?.count ?? 0, author: pmap[m.user_id] })))
     setLoading(false)
   }
   useEffect(() => { load() }, [])
@@ -102,6 +102,7 @@ export default function MomentsPage() {
                 <Link href={`/place/${m.place_id}`} className="inline-block mt-2 text-xs bg-blue-50 text-blue-700 rounded-full px-2.5 py-0.5">📍 {m.places.name}</Link>
               )}
               <div className="text-[11px] text-gray-300 mt-2">{new Date(m.created_at).toLocaleDateString('ko-KR')}</div>
+              <Link href={`/moments/${m.id}`} className="block text-xs text-gray-400 mt-1">댓글 {m.commentCount}개 보기 →</Link>
             </div>
           </li>
         ))}
