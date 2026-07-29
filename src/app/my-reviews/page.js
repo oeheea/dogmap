@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import StarRating from '@/components/StarRating'
 import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
 import LoginRequired from '@/components/LoginRequired'
@@ -79,16 +80,14 @@ export default function MyReviewsPage() {
                 <div className="text-xs text-gray-400">{r.places?.category}</div>
               </Link>
               {editId !== r.id && (
-                <span className="text-amber-500 text-sm shrink-0">{'★'.repeat(r.rating)}<span className="text-gray-200">{'★'.repeat(5 - r.rating)}</span></span>
+                <StarRating value={r.rating} readOnly size={16} />
               )}
             </div>
 
             {editId === r.id ? (
               /* ── 수정 모드 ── */
               <div className="mt-3 flex flex-col gap-2">
-                <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="border border-gray-200 rounded-lg px-3 py-2 w-28 bg-white text-sm">
-                  {[5,4,3,2,1].map((n) => <option key={n} value={n}>{'⭐'.repeat(n)}</option>)}
-                </select>
+                <StarRating value={rating} onChange={setRating} size={28} />
                 <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3}
                   className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm" />
 

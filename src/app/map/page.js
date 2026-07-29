@@ -32,6 +32,7 @@ export default function MapPage() {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const [stats, setStats] = useState(null)
+  const [photos, setPhotos] = useState([])
 
   const [folders, setFolders] = useState([])
   const [folderOn, setFolderOn] = useState({})
@@ -139,11 +140,21 @@ export default function MapPage() {
   }
 
   async function selectPlace(p) {
-    setSelected(p); setStats(null)
+    setSelected(p); setStats(null); setPhotos([])
     const { data: revs } = await supabase.from('reviews').select('rating').eq('place_id', p.id)
     const count = revs?.length ?? 0
     const avg = count ? (revs.reduce((s, r) => s + r.rating, 0) / count).toFixed(1) : null
     setStats({ avg, count })
+    const [rp, mp] = await Promise.all([
+      supabase.from('reviews').select('image_url, created_at, review_likes(count)').eq('place_id', p.id).not('image_url', 'is', null),
+      supabase.from('moments').select('image_url, created_at, moment_likes(count)').eq('place_id', p.id).not('image_url', 'is', null),
+    ])
+    const all = [
+      ...(rp.data || []).map((x) => ({ url: x.image_url, likes: x.review_likes?.[0]?.count ?? 0, t: x.created_at })),
+      ...(mp.data || []).map((x) => ({ url: x.image_url, likes: x.moment_likes?.[0]?.count ?? 0, t: x.created_at })),
+    ]
+    all.sort((a, b) => (b.likes - a.likes) || (new Date(b.t) - new Date(a.t)))
+    setPhotos(all.slice(0, 4).map((x) => x.url))
   }
 
   function circleHtml(color, icon) {
@@ -402,6 +413,11 @@ export default function MapPage() {
             {(selected.tags ?? []).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {selected.tags.map((t) => <span key={t} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">#{t}</span>)}
+              </div>
+            )}
+            {photos.length > 0 && (
+              <div className="flex gap-1 mt-2 overflow-x-auto">
+                {photos.map((u, i) => <img key={i} src={u} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />)}
               </div>
             )}
             <div className="flex gap-2 mt-3">

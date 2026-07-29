@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import StarRating from '@/components/StarRating'
 import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
 
@@ -26,13 +27,20 @@ export default function PlaceDetail() {
   const [editingCat, setEditingCat] = useState(false)
   const [cat, setCat] = useState('')
   const [tags, setTags] = useState([])
+  const [sort, setSort] = useState('recent')
 
   async function loadData() {
     const { data: placeData } = await supabase.from('places').select('*').eq('id', id).single()
     setPlace(placeData)
     if (placeData) { setCat(placeData.category ?? '기타'); setTags(placeData.tags ?? []) }
-    const { data: reviewData } = await supabase.from('reviews').select('*').eq('place_id', id).order('created_at', { ascending: false })
-    setReviews(reviewData ?? [])
+    const { data: u } = await supabase.auth.getUser()
+    const { data: reviewData } = await supabase.from('reviews').select('*, review_likes(count)').eq('place_id', id).order('created_at', { ascending: false })
+    let liked = new Set()
+    if (u.user) {
+      const { data: myl } = await supabase.from('review_likes').select('review_id').eq('user_id', u.user.id)
+      liked = new Set((myl ?? []).map((x) => x.review_id))
+    }
+    setReviews((reviewData ?? []).map((r) => ({ ...r, likeCount: r.review_likes?.[0]?.count ?? 0, liked: liked.has(r.id) })))
   }
 
   useEffect(() => {
@@ -41,6 +49,12 @@ export default function PlaceDetail() {
   }, [id])
 
   const myReview = reviews.find((r) => r.user_id === user?.id)
+  const sortedReviews = [...reviews].sort((a, b) => {
+    if (sort === 'high') return b.rating - a.rating
+    if (sort === 'low') return a.rating - b.rating
+    if (sort === 'popular') return (b.likeCount ?? 0) - (a.likeCount ?? 0)
+    return new Date(b.created_at) - new Date(a.created_at)
+  })
 
   async function submitReview(e) {
     e.preventDefault()
@@ -77,6 +91,13 @@ export default function PlaceDetail() {
     await supabase.from('reviews').delete().eq('id', reviewId)
     setEditingReview(false)
     loadData()
+  }
+
+  async function toggleReviewLike(r) {
+    if (!user) { alert('로그인이 필요해요'); return }
+    setReviews((prev) => prev.map((x) => x.id === r.id ? { ...x, liked: !x.liked, likeCount: x.likeCount + (x.liked ? -1 : 1) } : x))
+    if (r.liked) await supabase.from('review_likes').delete().eq('review_id', r.id).eq('user_id', user.id)
+    else await supabase.from('review_likes').insert({ review_id: r.id, user_id: user.id })
   }
 
   function toggleTag(t) { setTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]) }
@@ -133,16 +154,22 @@ export default function PlaceDetail() {
         </div>
       </div>
 
-      <h2 className="text-lg font-bold mt-6 mb-2">후기 {reviews.length}</h2>
+      <div className="flex items-center justify-between mt-6 mb-2">
+        <h2 className="text-lg font-bold">후기 {reviews.length}</h2>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-600">
+          <option value="recent">최신순</option>
+          <option value="popular">인기순</option>
+          <option value="high">별점 높은순</option>
+          <option value="low">별점 낮은순</option>
+        </select>
+      </div>
 
       {/* 후기 작성/수정 폼 */}
       {!user ? (
         <p className="text-sm text-gray-500 mb-4"><Link href="/login" className="text-blue-600 underline">로그인</Link> 후 후기를 남길 수 있어요.</p>
       ) : (!myReview || editingReview) ? (
         <form onSubmit={submitReview} className="flex flex-col gap-2 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="border border-gray-200 rounded-lg px-3 py-2 w-28 bg-white text-sm">
-            {[5,4,3,2,1].map((n) => <option key={n} value={n}>{'⭐'.repeat(n)}</option>)}
-          </select>
+          <StarRating value={rating} onChange={setRating} size={30} />
           <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="후기를 남겨주세요" required rows={3}
             className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm" />
 
@@ -173,14 +200,17 @@ export default function PlaceDetail() {
 
       {/* 후기 목록 */}
       <ul className="flex flex-col gap-3">
-        {reviews.filter((r) => !(editingReview && r.id === myReview?.id)).map((r) => (
+        {sortedReviews.filter((r) => !(editingReview && r.id === myReview?.id)).map((r) => (
           <li key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <div className="flex justify-between items-center">
               <Link href={`/profile/${r.user_id}`} className="font-semibold text-sm hover:underline">{r.nickname ?? '익명'}</Link>
-              <span className="text-amber-500 text-sm">{'★'.repeat(r.rating)}<span className="text-gray-200">{'★'.repeat(5 - r.rating)}</span></span>
+              <StarRating value={r.rating} readOnly size={16} />
             </div>
             <p className="mt-1.5 text-sm text-gray-700">{r.content}</p>
             {r.image_url && <img src={r.image_url} alt="" className="mt-2 rounded-lg max-h-56 object-cover" />}
+            <button onClick={() => toggleReviewLike(r)} className="text-xs mt-2 block">
+              {r.liked ? '❤️' : '🤍'} 도움돼요 {r.likeCount}
+            </button>
             {user && user.id === r.user_id && (
               <div className="flex gap-3 mt-2">
                 <button onClick={startEditReview} className="text-xs text-blue-500">수정</button>

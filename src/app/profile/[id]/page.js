@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
 import ShapeIcon from '@/components/ShapeIcon'
+import StarRating from '@/components/StarRating'
 
 export default function ProfilePage() {
   const { id } = useParams()
@@ -156,7 +157,7 @@ export default function ProfilePage() {
                   <Link href={`/place/${r.place_id}`} className="block bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-sm truncate">{r.places?.name ?? '(삭제된 장소)'}</span>
-                      <span className="text-amber-500 text-sm shrink-0">{'★'.repeat(r.rating)}</span>
+                      <StarRating value={r.rating} readOnly size={16} />
                     </div>
                     <p className="text-sm text-gray-600 mt-1">{r.content}</p>
                   </Link>

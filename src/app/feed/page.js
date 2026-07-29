@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import StarRating from '@/components/StarRating'
 import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
 import LoginRequired from '@/components/LoginRequired'
@@ -46,7 +47,7 @@ export default function FeedPage() {
             <Link href={`/place/${r.place_id}`} className="block">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-sm truncate">{r.places?.name ?? '(삭제된 장소)'}</span>
-                <span className="text-amber-500 text-sm shrink-0">{'★'.repeat(r.rating)}</span>
+                <StarRating value={r.rating} readOnly size={16} />
               </div>
               <p className="text-sm text-gray-600 mt-1">{r.content}</p>
               {r.image_url && <img src={r.image_url} alt="" className="mt-2 rounded-lg max-h-52 object-cover" />}
