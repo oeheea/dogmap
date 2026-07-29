@@ -20,13 +20,13 @@ export default function PlaceDetail() {
   const [rating, setRating] = useState(5)
   const [content, setContent] = useState('')
   const [file, setFile] = useState(null)
+  const [reviewTags, setReviewTags] = useState([])
   const [editingReview, setEditingReview] = useState(false)
   const [removePhoto, setRemovePhoto] = useState(false)
 
   const [editingCat, setEditingCat] = useState(false)
   const [cat, setCat] = useState('')
-  const [tagList, setTagList] = useState([])
-  const [thr, setThr] = useState({ confirm: 5, delete: 5 })
+  const [tagCounts, setTagCounts] = useState([])
   const [sort, setSort] = useState('recent')
   const [reportOpen, setReportOpen] = useState(false)
 
@@ -36,35 +36,20 @@ export default function PlaceDetail() {
     if (placeData) setCat(placeData.category ?? '기타')
     const { data: u } = await supabase.auth.getUser()
 
-    // 임계값(설정) 읽기
-    const { data: st } = await supabase.from('app_settings').select('key, value')
-    const cthr = Number(st?.find((s) => s.key === 'tag_confirm')?.value ?? 5)
-    const dthr = Number(st?.find((s) => s.key === 'tag_delete')?.value ?? 5)
-    setThr({ confirm: cthr, delete: dthr })
-
-    // 태그 투표 집계 (동의/삭제제안)
-    const { data: pt } = await supabase.from('place_tags').select('tag, user_id, stance').eq('place_id', id)
-    const m = {}
-    for (const row of (pt ?? [])) {
-      if (!m[row.tag]) m[row.tag] = { tag: row.tag, up: new Set(), down: new Set(), seeded: false, mine: null }
-      if (row.user_id == null) m[row.tag].seeded = true
-      else {
-        if (row.stance === 'down') m[row.tag].down.add(row.user_id); else m[row.tag].up.add(row.user_id)
-        if (u.user && row.user_id === u.user.id) m[row.tag].mine = row.stance === 'down' ? 'down' : 'up'
-      }
-    }
-    const list = Object.values(m)
-      .map((x) => ({ tag: x.tag, up: x.up.size, down: x.down.size, confirmed: x.down.size < dthr && (x.seeded || x.up.size >= cthr), removed: x.down.size >= dthr, mine: x.mine }))
-      .sort((a, b) => (b.confirmed - a.confirmed) || a.tag.localeCompare(b.tag))
-    setTagList(list)
-
     const { data: reviewData } = await supabase.from('reviews').select('*, review_likes(count)').eq('place_id', id).order('created_at', { ascending: false })
+    const rev = reviewData ?? []
+
+    // 후기에서 체크된 특징 집계
+    const counts = {}
+    for (const r of rev) for (const t of (r.tags ?? [])) counts[t] = (counts[t] ?? 0) + 1
+    setTagCounts(Object.entries(counts).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count))
+
     let liked = new Set()
     if (u.user) {
       const { data: myl } = await supabase.from('review_likes').select('review_id').eq('user_id', u.user.id)
       liked = new Set((myl ?? []).map((x) => x.review_id))
     }
-    setReviews((reviewData ?? []).map((r) => ({ ...r, likeCount: r.review_likes?.[0]?.count ?? 0, liked: liked.has(r.id) })))
+    setReviews(rev.map((r) => ({ ...r, likeCount: r.review_likes?.[0]?.count ?? 0, liked: liked.has(r.id) })))
   }
 
   useEffect(() => {
@@ -80,6 +65,10 @@ export default function PlaceDetail() {
     return new Date(b.created_at) - new Date(a.created_at)
   })
 
+  function toggleReviewTag(t) {
+    setReviewTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
+  }
+
   async function submitReview(e) {
     e.preventDefault()
     if (!user) return
@@ -94,13 +83,13 @@ export default function PlaceDetail() {
     }
     const nickname = user.user_metadata?.nickname ?? user.email
     if (editingReview) {
-      const { error } = await supabase.from('reviews').update({ rating, content, image_url: imageUrl }).eq('id', myReview.id)
+      const { error } = await supabase.from('reviews').update({ rating, content, image_url: imageUrl, tags: reviewTags }).eq('id', myReview.id)
       if (error) { alert('수정 실패: ' + error.message); return }
     } else {
-      const { error } = await supabase.from('reviews').insert({ place_id: id, user_id: user.id, rating, content, nickname, image_url: imageUrl })
+      const { error } = await supabase.from('reviews').insert({ place_id: id, user_id: user.id, rating, content, nickname, image_url: imageUrl, tags: reviewTags })
       if (error) { alert('등록 실패: ' + error.message); return }
     }
-    setContent(''); setRating(5); setFile(null); setEditingReview(false); setRemovePhoto(false)
+    setContent(''); setRating(5); setFile(null); setReviewTags([]); setEditingReview(false); setRemovePhoto(false)
     loadData()
   }
 
@@ -108,6 +97,7 @@ export default function PlaceDetail() {
     setEditingReview(true)
     setRating(myReview.rating)
     setContent(myReview.content)
+    setReviewTags(myReview.tags ?? [])
     setFile(null); setRemovePhoto(false)
   }
   async function handleDeleteReview(reviewId) {
@@ -124,18 +114,6 @@ export default function PlaceDetail() {
     else await supabase.from('review_likes').insert({ review_id: r.id, user_id: user.id })
   }
 
-  async function setStance(tag, stance) {
-    if (!user) { alert('로그인이 필요해요'); return }
-    await supabase.from('place_tags').delete().eq('place_id', id).eq('tag', tag).eq('user_id', user.id)
-    const { error } = await supabase.from('place_tags').insert({ place_id: id, tag, user_id: user.id, stance })
-    if (error) { alert(error.message); return }
-    loadData()
-  }
-  async function clearStance(tag) {
-    if (!user) return
-    await supabase.from('place_tags').delete().eq('place_id', id).eq('tag', tag).eq('user_id', user.id)
-    loadData()
-  }
   async function saveCategory() {
     const { error } = await supabase.from('places').update({ category: cat }).eq('id', id)
     if (error) { alert('수정 실패: ' + error.message); return }
@@ -155,6 +133,7 @@ export default function PlaceDetail() {
           <div className="min-w-0">
             <h1 className="text-2xl font-extrabold">{place.name}</h1>
             <p className="text-sm text-gray-500 mt-1">{formatAddress(place.address)}</p>
+            {place.description && <p className="text-sm text-gray-700 mt-2">{place.description}</p>}
           </div>
           <button onClick={() => setReportOpen(true)} className="text-gray-300 hover:text-red-500 text-sm shrink-0" title="신고">🚩</button>
         </div>
@@ -178,37 +157,25 @@ export default function PlaceDetail() {
             )}
           </div>
 
-          <div className="mt-3">
-            <div className="text-xs font-semibold text-gray-400 mb-1.5">세부 특징 <span className="font-normal text-gray-300">· 👍{thr.confirm}명이면 확정 · 🗑️{thr.delete}명이면 삭제</span></div>
-            <div className="flex flex-wrap gap-1.5">
-              {tagList.length === 0 && <span className="text-xs text-gray-300">아직 특징이 없어요. 아래에서 추가해보세요.</span>}
-              {tagList.map((t) => (
-                <span key={t.tag} className={`text-xs rounded-full pl-2.5 pr-1.5 py-0.5 flex items-center gap-1.5 border ${t.removed ? 'bg-gray-50 text-gray-300 line-through border-gray-100' : t.confirmed ? 'bg-gray-100 text-gray-600 border-gray-100' : 'bg-white text-gray-400 border-dashed border-gray-300'}`}>
-                  #{t.tag}
-                  {t.removed ? <span className="text-[10px] no-underline">삭제됨</span> : (<>
-                    {!t.confirmed && <span className="text-[10px] text-amber-500">제안·{t.up}</span>}
-                    {t.down > 0 && <span className="text-[10px] text-red-400">삭제 {t.down}/{thr.delete}</span>}
-                  </>)}
-                  {user && (
-                    <span className="flex items-center gap-1">
-                      <button onClick={() => (t.mine === 'up' ? clearStance(t.tag) : setStance(t.tag, 'up'))} className={`text-[11px] leading-none ${t.mine === 'up' ? 'opacity-100' : 'opacity-40'}`} title="이 태그 맞아요">👍</button>
-                      <button onClick={() => (t.mine === 'down' ? clearStance(t.tag) : setStance(t.tag, 'down'))} className={`text-[11px] leading-none ${t.mine === 'down' ? 'opacity-100' : 'opacity-40'}`} title="이 태그 아니에요 (삭제 제안)">🗑️</button>
-                    </span>
-                  )}
-                </span>
-              ))}
+          {tagCounts.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-gray-400 mb-1.5">방문자가 확인한 특징</div>
+              <div className="flex flex-wrap gap-1.5">
+                {tagCounts.map((t) => (
+                  <span key={t.tag} className="text-xs bg-emerald-50 text-emerald-700 rounded-full px-2.5 py-0.5">{t.tag} · {t.count}</span>
+                ))}
+              </div>
             </div>
-            {user && (
-              <details className="mt-2">
-                <summary className="text-xs text-blue-600 cursor-pointer list-none">＋ 특징 추가·제안</summary>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {TAG_OPTIONS.filter((t) => !tagList.some((x) => x.tag === t)).map((t) => (
-                    <button key={t} onClick={() => setStance(t, 'up')} className="text-xs border border-gray-200 rounded-full px-2.5 py-1 hover:bg-gray-50">#{t}</button>
-                  ))}
-                </div>
-              </details>
-            )}
-          </div>
+          )}
+
+          {(place.tags ?? []).length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-gray-400 mb-1.5">기본 정보</div>
+              <div className="flex flex-wrap gap-1.5">
+                {place.tags.map((t) => <span key={t} className="text-xs bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5">#{t}</span>)}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -229,6 +196,15 @@ export default function PlaceDetail() {
           <StarRating value={rating} onChange={setRating} size={30} />
           <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="후기를 남겨주세요" required rows={3}
             className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm" />
+
+          <div className="text-xs text-gray-400 mt-1">이 곳의 특징 (해당되는 것 체크)</div>
+          <div className="flex flex-wrap gap-1.5">
+            {TAG_OPTIONS.map((t) => (
+              <button type="button" key={t} onClick={() => toggleReviewTag(t)}
+                className={`text-xs rounded-full px-2.5 py-1 border transition ${reviewTags.includes(t) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}>{t}</button>
+            ))}
+          </div>
+
           {(file || (editingReview && myReview?.image_url && !removePhoto)) && (
             <div className="relative w-fit">
               <img src={file ? URL.createObjectURL(file) : myReview.image_url} alt="" className="rounded-lg max-h-48" />
@@ -243,7 +219,7 @@ export default function PlaceDetail() {
           <div className="flex gap-2">
             <button className="flex-1 bg-blue-600 text-white rounded-lg px-3 py-2.5 text-sm font-medium">{editingReview ? '수정 완료' : '후기 등록'}</button>
             {editingReview && (
-              <button type="button" onClick={() => { setEditingReview(false); setFile(null); setRemovePhoto(false) }}
+              <button type="button" onClick={() => { setEditingReview(false); setFile(null); setRemovePhoto(false); setReviewTags([]) }}
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm">취소</button>
             )}
           </div>
@@ -260,6 +236,11 @@ export default function PlaceDetail() {
               <StarRating value={r.rating} readOnly size={16} />
             </div>
             <p className="mt-1.5 text-sm text-gray-700">{r.content}</p>
+            {(r.tags ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {r.tags.map((t) => <span key={t} className="text-[11px] bg-emerald-50 text-emerald-700 rounded-full px-2 py-0.5">{t}</span>)}
+              </div>
+            )}
             {r.image_url && <img src={r.image_url} alt="" className="mt-2 rounded-lg max-h-56 object-cover" />}
             <button onClick={() => toggleReviewLike(r)} className="text-xs mt-2 block">
               {r.liked ? '❤️' : '🤍'} 도움돼요 {r.likeCount}
