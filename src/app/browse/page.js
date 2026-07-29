@@ -8,16 +8,25 @@ import { formatAddress } from '@/lib/format'
 import ReportModal from '@/components/ReportModal'
 
 const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동가방 필수', '마당 있음', '자유 산책 가능', '실내 동반 가능', '실외에만 가능', '무게 제한 있음']
+const CATEGORIES = [
+  { key: '애견카페', label: '애견카페' },
+  { key: '카페', label: '반려동물 동반 카페' },
+  { key: '밥집', label: '반려동물 동반 밥집' },
+  { key: '펜션', label: '반려동물 동반 펜션' },
+  { key: '기타', label: '기타' },
+]
 
 export default function BrowsePage() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [activeCat, setActiveCat] = useState('')
   const [activeTags, setActiveTags] = useState([])
   const [places, setPlaces] = useState([])
   const [reportTarget, setReportTarget] = useState(null)
 
   async function load() {
     let q = supabase.from('places').select('*').eq('hidden', false).order('created_at', { ascending: false })
+    if (activeCat) q = q.ilike('category', `%${activeCat}%`)
     if (activeTags.length > 0) q = q.contains('tags', activeTags)
     const { data } = await q
     setPlaces(data ?? [])
@@ -25,7 +34,7 @@ export default function BrowsePage() {
   }
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setUser(data.user)) }, [])
-  useEffect(() => { load() }, [activeTags])
+  useEffect(() => { load() }, [activeCat, activeTags])
 
   function toggleTag(t) {
     setActiveTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
@@ -49,6 +58,21 @@ export default function BrowsePage() {
     <div className="max-w-lg mx-auto p-4">
       <h1 className="text-2xl font-extrabold mb-3">둘러보기</h1>
 
+      <div className="text-xs font-semibold text-gray-400 mb-1.5">카테고리</div>
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
+        <button onClick={() => setActiveCat('')}
+          className={`whitespace-nowrap text-sm rounded-full px-3.5 py-1.5 border transition ${
+            activeCat === '' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200'
+          }`}>전체</button>
+        {CATEGORIES.map((c) => (
+          <button key={c.key} onClick={() => setActiveCat(c.key)}
+            className={`whitespace-nowrap text-sm rounded-full px-3.5 py-1.5 border transition ${
+              activeCat === c.key ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+            }`}>{c.label}</button>
+        ))}
+      </div>
+
+      <div className="text-xs font-semibold text-gray-400 mb-1.5">특징</div>
       <div className="flex gap-2 overflow-x-auto pb-2 mb-1 -mx-1 px-1">
         <button onClick={() => setActiveTags([])}
           className={`whitespace-nowrap text-sm rounded-full px-3.5 py-1.5 border transition ${
@@ -99,6 +123,10 @@ export default function BrowsePage() {
           </li>
         ))}
       </ul>
+
+      {reportTarget && (
+        <ReportModal place={reportTarget} user={user} onClose={() => setReportTarget(null)} />
+      )}
     </div>
   )
 }

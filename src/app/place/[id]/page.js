@@ -8,7 +8,7 @@ import ReportModal from '@/components/ReportModal'
 import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
 
-const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
+const CATEGORIES = ['애견카페', '반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동가방 필수', '마당 있음', '자유 산책 가능', '실내 동반 가능', '실외에만 가능', '무게 제한 있음']
 
 export default function PlaceDetail() {

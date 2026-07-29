@@ -56,7 +56,9 @@ async function run() {
     const source_id = `kci:${name}|${la.toFixed(6)}|${ln.toFixed(6)}`
     if (seen.has(source_id)) continue; seen.add(source_id)
     let desc = n(r['기본 정보_장소설명']); if (['정보없음', '없음', '해당없음'].includes(desc)) desc = ''
-    rows.push({ name, category: CAT[c3], address: n(r['도로명주소']) || n(r['지번주소']), lat: +la.toFixed(6), lng: +ln.toFixed(6), description: desc.slice(0, 200), tags: tags(r), source_id })
+    const dogCafe = ['애견카페', '강아지카페', '도그카페', '댕댕이카페'].some((k) => name.replace(/\s/g, '').includes(k))
+    const category = dogCafe ? '애견카페' : CAT[c3]
+    rows.push({ name, category, address: n(r['도로명주소']) || n(r['지번주소']), lat: +la.toFixed(6), lng: +ln.toFixed(6), description: desc.slice(0, 200), tags: tags(r), source_id })
   }
   console.log('필터 후:', rows.length)
   let done = 0
