@@ -56,7 +56,11 @@ export default function MomentDetail() {
     await supabase.from('moment_comments').insert({ moment_id: id, user_id: user.id, nickname, content: text })
     setText(''); load()
   }
-  async function delComment(cid) { await supabase.from('moment_comments').delete().eq('id', cid); load() }
+  async function delComment(cid) {
+    if (!confirm('댓글을 삭제할까요?')) return
+    await supabase.from('moment_comments').delete().eq('id', cid)
+    load()
+  }
   async function delMoment() {
     if (!confirm('게시물을 삭제할까요?')) return
     await supabase.from('moments').delete().eq('id', id); router.push('/moments')

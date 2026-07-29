@@ -39,7 +39,11 @@ export default function PostDetail() {
     if (error) { alert(error.message); return }
     setText(''); load()
   }
-  async function delComment(cid) { await supabase.from('comments').delete().eq('id', cid); load() }
+  async function delComment(cid) {
+    if (!confirm('댓글을 삭제할까요?')) return
+    await supabase.from('comments').delete().eq('id', cid)
+    load()
+  }
   async function delPost() {
     if (!confirm('글을 삭제할까요?')) return
     await supabase.from('posts').delete().eq('id', id)
