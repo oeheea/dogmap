@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import StarRating from '@/components/StarRating'
+import ReportModal from '@/components/ReportModal'
 import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
 
@@ -28,6 +29,7 @@ export default function PlaceDetail() {
   const [cat, setCat] = useState('')
   const [tags, setTags] = useState([])
   const [sort, setSort] = useState('recent')
+  const [reportOpen, setReportOpen] = useState(false)
 
   async function loadData() {
     const { data: placeData } = await supabase.from('places').select('*').eq('id', id).single()
@@ -116,8 +118,13 @@ export default function PlaceDetail() {
       <Link href="/map" className="text-sm text-gray-400">← 지도로</Link>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mt-2">
-        <h1 className="text-2xl font-extrabold">{place.name}</h1>
-        <p className="text-sm text-gray-500 mt-1">{formatAddress(place.address)}</p>
+        <div className="flex justify-between items-start gap-2">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold">{place.name}</h1>
+            <p className="text-sm text-gray-500 mt-1">{formatAddress(place.address)}</p>
+          </div>
+          <button onClick={() => setReportOpen(true)} className="text-gray-300 hover:text-red-500 text-sm shrink-0" title="신고">🚩</button>
+        </div>
         {avg && <p className="text-sm mt-2"><span className="text-amber-500">★</span> <b>{avg}</b> <span className="text-gray-400">· 후기 {reviews.length}</span></p>}
 
         <div className="mt-3 pt-3 border-t border-gray-100">
@@ -220,6 +227,8 @@ export default function PlaceDetail() {
           </li>
         ))}
       </ul>
+
+      {reportOpen && <ReportModal placeId={place.id} placeName={place.name} onClose={() => setReportOpen(false)} />}
     </div>
   )
 }

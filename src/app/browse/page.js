@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
 import { formatAddress } from '@/lib/format'
+import ReportModal from '@/components/ReportModal'
 
 const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동가방 필수', '마당 있음', '자유 산책 가능', '실내 동반 가능', '실외에만 가능', '무게 제한 있음']
 
@@ -13,6 +14,7 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(true)
   const [activeTags, setActiveTags] = useState([])
   const [places, setPlaces] = useState([])
+  const [reportTarget, setReportTarget] = useState(null)
 
   async function load() {
     let q = supabase.from('places').select('*').eq('hidden', false).order('created_at', { ascending: false })
@@ -91,7 +93,7 @@ export default function BrowsePage() {
                 )}
               </Link>
               {user && (
-                <button onClick={() => reportPlace(p.id)} className="text-gray-300 hover:text-red-500 text-sm shrink-0" title="신고">🚩</button>
+                <button onClick={() => setReportTarget(p)} className="text-gray-300 hover:text-red-500 text-sm shrink-0" title="신고">🚩</button>
               )}
             </div>
           </li>

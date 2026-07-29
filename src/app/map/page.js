@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
 import ShapeIcon from '@/components/ShapeIcon'
 import { SHAPES, shapeSvg } from '@/lib/shapes'
+import ReportModal from '@/components/ReportModal'
 
 const CATEGORIES = ['반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동가방 필수', '마당 있음', '자유 산책 가능', '실내 동반 가능', '실외에만 가능', '무게 제한 있음']
@@ -33,6 +34,7 @@ export default function MapPage() {
   const [selected, setSelected] = useState(null)
   const [stats, setStats] = useState(null)
   const [photos, setPhotos] = useState([])
+  const [reportTarget, setReportTarget] = useState(null)
 
   const [folders, setFolders] = useState([])
   const [folderOn, setFolderOn] = useState({})
@@ -427,6 +429,7 @@ export default function MapPage() {
           </div>
         )}
 
+        {reportTarget && <ReportModal placeId={reportTarget.id} placeName={reportTarget.name} onClose={() => setReportTarget(null)} />}
         {showSave && (
           <div className="absolute inset-0 z-20 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowSave(false)}>
             <div className="w-full max-w-sm bg-white text-gray-900 rounded-2xl p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
