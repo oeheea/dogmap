@@ -25,7 +25,7 @@ export default function Header() {
     async function loadUser(u) {
       setUser(u)
       if (u) {
-        const { data } = await supabase.from('profiles').select('avatar_url, nickname').eq('id', u.id).single()
+        const { data } = await supabase.from('profiles').select('avatar_url, nickname, is_admin').eq('id', u.id).single()
         setAvatar(data)
       } else setAvatar(null)
     }
@@ -49,7 +49,7 @@ export default function Header() {
           </Link>
         ))}
       </nav>
-      {user?.email === 'oe7eea7@gmail.com' && (
+      {avatar?.is_admin && (
         <Link href="/admin" className="px-2.5 py-1.5 rounded-full text-sm font-medium text-red-500 hover:bg-red-50 whitespace-nowrap shrink-0">관리</Link>
       )}
       <div className="ml-auto shrink-0 pl-2">
