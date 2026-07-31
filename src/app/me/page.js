@@ -26,6 +26,7 @@ export default function MePage() {
     <div className="max-w-lg mx-auto p-6 text-center text-gray-500">
       <p className="mb-3">로그인하고 나만의 멍냥플레이스를 만들어보세요 🐾</p>
       <Link href="/login" className="inline-block bg-blue-600 text-white rounded-full px-5 py-2 text-sm">로그인</Link>
+      <div className="mt-4"><Link href="/guide" className="text-sm text-blue-600 underline">📖 이용 가이드 보기</Link></div>
     </div>
   )
 
@@ -35,6 +36,7 @@ export default function MePage() {
     { href: '/my-reviews', label: '내 후기', icon: '✍️' },
     { href: '/feed', label: '피드', icon: '📰' },
     { href: '/community', label: '커뮤니티', icon: '💬' },
+    { href: '/guide', label: '이용 가이드', icon: '📖' },
   ]
 
   return (

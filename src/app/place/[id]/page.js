@@ -25,6 +25,7 @@ export default function PlaceDetail() {
   const [removePhoto, setRemovePhoto] = useState(false)
 
   const [editingCat, setEditingCat] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [cat, setCat] = useState('')
   const [tagCounts, setTagCounts] = useState([])
   const [sort, setSort] = useState('recent')
@@ -35,6 +36,13 @@ export default function PlaceDetail() {
     setPlace(placeData)
     if (placeData) setCat(placeData.category ?? '기타')
     const { data: u } = await supabase.auth.getUser()
+
+    let admin = false
+    if (u.user) {
+      const { data: pr } = await supabase.from('profiles').select('is_admin').eq('id', u.user.id).single()
+      admin = !!pr?.is_admin
+    }
+    setIsAdmin(admin)
 
     const { data: reviewData } = await supabase.from('reviews').select('*, review_likes(count)').eq('place_id', id).order('created_at', { ascending: false })
     const rev = reviewData ?? []
@@ -144,7 +152,7 @@ export default function PlaceDetail() {
             {!editingCat ? (
               <>
                 <span className="text-sm font-semibold bg-blue-50 text-blue-700 rounded-full px-3 py-1">{place.category ?? '기타'}</span>
-                {user && <button onClick={() => setEditingCat(true)} className="text-xs text-gray-400 hover:text-gray-700 shrink-0">✎ 카테고리 수정</button>}
+                {isAdmin && <button onClick={() => setEditingCat(true)} className="text-xs text-gray-400 hover:text-gray-700 shrink-0">✎ 카테고리 수정</button>}
               </>
             ) : (
               <div className="flex gap-2 w-full">

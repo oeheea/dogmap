@@ -14,6 +14,8 @@ export default function AdminPage() {
   const [threshold, setThreshold] = useState(3)
   const [tagConfirm, setTagConfirm] = useState(5)
   const [tagDelete, setTagDelete] = useState(5)
+  const [catVotes, setCatVotes] = useState([])
+  const [catThreshold, setCatThreshold] = useState(10)
 
   async function checkAdmin() {
     const { data: u } = await supabase.auth.getUser()
@@ -27,9 +29,10 @@ export default function AdminPage() {
   }
   async function loadAll() {
     const { data: s } = await supabase.rpc('admin_stats')
-    if (s) { setStats(s); setThreshold(s.threshold ?? 3); setTagConfirm(s.tag_confirm ?? 5); setTagDelete(s.tag_delete ?? 5) }
+    if (s) { setStats(s); setThreshold(s.threshold ?? 3); setTagConfirm(s.tag_confirm ?? 5); setTagDelete(s.tag_delete ?? 5); setCatThreshold(s.category_threshold ?? 10) }
     const { data: rp } = await supabase.rpc('admin_reports'); setReports(rp ?? [])
     const { data: us } = await supabase.rpc('admin_list_users'); setUsers(us ?? [])
+    const { data: cv } = await supabase.rpc('admin_category_votes'); setCatVotes(cv ?? [])
   }
   useEffect(() => { checkAdmin() }, [])
 
@@ -57,6 +60,18 @@ export default function AdminPage() {
     const { error } = await supabase.rpc('admin_set_tag_thresholds', { confirm_val: Number(tagConfirm), delete_val: Number(tagDelete) })
     if (error) { alert(error.message); return }
     alert('저장했어요 🐾'); loadAll()
+  }
+
+  async function saveCatThreshold() {
+    const { error } = await supabase.rpc('admin_set_category_threshold', { val: Number(catThreshold) })
+    if (error) { alert(error.message); return }
+    alert('저장했어요 🐾'); loadAll()
+  }
+  async function applyCategory(pid, cat) {
+    if (!confirm(`이 가게를 "${cat}" (으)로 바꿀까요?`)) return
+    const { error } = await supabase.rpc('admin_apply_category', { pid, cat })
+    if (error) { alert(error.message); return }
+    loadAll()
   }
 
   if (!loaded) return <div className="p-6 text-gray-400">불러오는 중...</div>
@@ -114,6 +129,22 @@ export default function AdminPage() {
               </li>
             ))}
           </ul>
+          {catVotes.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-bold mb-2">카테고리 정정 요청</h3>
+              <ul className="flex flex-col gap-2">
+                {catVotes.map((c) => (
+                  <li key={c.place_id + c.suggested_category} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-sm truncate">{c.name}</div>
+                      <div className="text-[11px] text-gray-500">{c.current_category} → <b className="text-blue-700">{c.suggested_category}</b> · {c.votes}명</div>
+                    </div>
+                    <button onClick={() => applyCategory(c.place_id, c.suggested_category)} className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 shrink-0">적용</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </>
       )}
 
@@ -146,18 +177,12 @@ export default function AdminPage() {
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <div className="text-sm font-semibold mb-1">태그 투표 기준</div>
-            <p className="text-xs text-gray-400 mb-3">특징 태그가 확정·삭제되는 데 필요한 사람 수예요.</p>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm text-gray-500 w-14">👍 확정</span>
-              <input type="number" min="1" value={tagConfirm} onChange={(e) => setTagConfirm(e.target.value)} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <span className="text-sm text-gray-500">명 이상</span>
-            </div>
+            <div className="text-sm font-semibold mb-1">카테고리 자동 변경 기준</div>
+            <p className="text-xs text-gray-400 mb-3">몇 명이 같은 카테고리로 정정 요청하면 자동으로 바꿀지 정해요.</p>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 w-14">🗑️ 삭제</span>
-              <input type="number" min="1" value={tagDelete} onChange={(e) => setTagDelete(e.target.value)} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <input type="number" min="1" value={catThreshold} onChange={(e) => setCatThreshold(e.target.value)} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
               <span className="text-sm text-gray-500">명 이상</span>
-              <button onClick={saveTagThresholds} className="ml-auto bg-blue-600 text-white rounded-lg px-4 py-2 text-sm">저장</button>
+              <button onClick={saveCatThreshold} className="ml-auto bg-blue-600 text-white rounded-lg px-4 py-2 text-sm">저장</button>
             </div>
           </div>
         </div>

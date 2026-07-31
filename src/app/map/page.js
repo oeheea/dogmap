@@ -23,6 +23,15 @@ function catTile(cat) {
   return { icon: '📍', cls: 'bg-gray-100' }
 }
 
+function guessCategory(name) {
+  const n = (name || '').replace(/\s/g, '')
+  if (/애견카페|강아지카페|댕댕이카페|도그카페|퍼피카페/.test(n)) return '애견카페'
+  if (/펜션|풀빌라|글램핑|캠핑|스테이|리조트|호텔|민박|게스트하우스/.test(n)) return '반려동물 동반 펜션'
+  if (/카페|커피|coffee|베이커리|디저트|브런치|로스터리|티하우스/i.test(n)) return '반려동물 동반 카페'
+  if (/식당|밥집|맛집|국밥|고깃집|고기|치킨|피자|파스타|레스토랑|분식|횟집|삼겹|중국집|일식|한식|양식|포차|술집|bar|펍/i.test(n)) return '반려동물 동반 밥집'
+  return '기타'
+}
+
 export default function MapPage() {
   const router = useRouter()
   const mapRef = useRef(null)
@@ -258,7 +267,7 @@ export default function MapPage() {
     e.preventDefault()
     if (!regPos) { alert('지도를 클릭해 위치를 먼저 선택해주세요'); return }
     const { data, error } = await supabase.from('places').insert({
-      name: regForm.name, category: regForm.category, address: regForm.address,
+      name: regForm.name, category: guessCategory(regForm.name), address: regForm.address,
       description: regForm.description, lat: regPos.lat, lng: regPos.lng,
     }).select().single()
     if (error) { alert('등록 실패: ' + error.message); return }
@@ -396,9 +405,10 @@ export default function MapPage() {
           <form onSubmit={saveRegister} className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 w-80 bg-white text-gray-900 rounded-2xl shadow-xl p-4 flex flex-col gap-2">
             <h2 className="font-bold">새 장소 등록</h2>
             <input value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} placeholder="장소 이름" required className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-            <select value={regForm.category} onChange={(e) => setRegForm({ ...regForm, category: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50">
+              카테고리: <b className="text-gray-800">{guessCategory(regForm.name)}</b>
+              <span className="text-[11px] text-gray-400"> · 이름 기반 자동 분류</span>
+            </div>
             <input value={regForm.address} onChange={(e) => setRegForm({ ...regForm, address: e.target.value })} placeholder="주소" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
             <textarea value={regForm.description} onChange={(e) => setRegForm({ ...regForm, description: e.target.value })} placeholder="한줄 소개" rows={2} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
             <div className="flex gap-2">
