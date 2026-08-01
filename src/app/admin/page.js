@@ -15,6 +15,7 @@ export default function AdminPage() {
   const [threshold, setThreshold] = useState(3)
   const [catThreshold, setCatThreshold] = useState(10)
   const [tagMinShow, setTagMinShow] = useState(1)
+  const [searchRadius, setSearchRadius] = useState(2)
 
   async function checkAdmin() {
     const { data: u } = await supabase.auth.getUser()
@@ -28,7 +29,7 @@ export default function AdminPage() {
   }
   async function loadAll() {
     const { data: s } = await supabase.rpc('admin_stats')
-    if (s) { setStats(s); setThreshold(s.threshold ?? 3); setCatThreshold(s.category_threshold ?? 10); setTagMinShow(s.tag_min_show ?? 1) }
+    if (s) { setStats(s); setThreshold(s.threshold ?? 3); setCatThreshold(s.category_threshold ?? 10); setTagMinShow(s.tag_min_show ?? 1); setSearchRadius(s.search_radius_km ?? 2) }
     const { data: rp } = await supabase.rpc('admin_reports'); setReports(rp ?? [])
     const { data: us } = await supabase.rpc('admin_list_users'); setUsers(us ?? [])
     const { data: cv } = await supabase.rpc('admin_category_votes'); setCatVotes(cv ?? [])
@@ -66,6 +67,11 @@ export default function AdminPage() {
   }
   async function saveTagMinShow() {
     const { error } = await supabase.rpc('admin_set_tag_min_show', { val: Number(tagMinShow) })
+    if (error) { alert(error.message); return }
+    alert('저장했어요 🐾'); loadAll()
+  }
+  async function saveSearchRadius() {
+    const { error } = await supabase.rpc('admin_set_search_radius', { val: Number(searchRadius) })
     if (error) { alert(error.message); return }
     alert('저장했어요 🐾'); loadAll()
   }
@@ -185,11 +191,21 @@ export default function AdminPage() {
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <div className="text-sm font-semibold mb-1">특징 표시 최소 인원</div>
-            <p className="text-xs text-gray-400 mb-3">후기에서 몇 명 이상이 체크한 특징만 가게에 표시할지 정해요. (1이면 한 명만 체크해도 표시)</p>
+            <p className="text-xs text-gray-400 mb-3">후기에서 몇 명 이상이 체크한 특징만 표시할지 정해요.</p>
             <div className="flex items-center gap-2">
               <input type="number" min="1" value={tagMinShow} onChange={(e) => setTagMinShow(e.target.value)} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
               <span className="text-sm text-gray-500">명 이상</span>
               <button onClick={saveTagMinShow} className="ml-auto bg-blue-600 text-white rounded-lg px-4 py-2 text-sm">저장</button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div className="text-sm font-semibold mb-1">지역 검색 반경</div>
+            <p className="text-xs text-gray-400 mb-3">둘러보기에서 지역 검색 시 몇 km 안의 가게를 보여줄지 정해요.</p>
+            <div className="flex items-center gap-2">
+              <input type="number" min="1" value={searchRadius} onChange={(e) => setSearchRadius(e.target.value)} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <span className="text-sm text-gray-500">km 이내</span>
+              <button onClick={saveSearchRadius} className="ml-auto bg-blue-600 text-white rounded-lg px-4 py-2 text-sm">저장</button>
             </div>
           </div>
         </div>

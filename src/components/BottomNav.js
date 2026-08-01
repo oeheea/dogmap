@@ -17,7 +17,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
       <div className="max-w-lg mx-auto flex items-center justify-around px-2 pt-1.5" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
         {TABS.map((t) => {
-          const active = pathname === t.href || pathname.startsWith(t.href + '/')
+          const active = pathname === t.href || (t.href !== '/' && pathname.startsWith(t.href + '/'))
           if (t.center) {
             return (
               <Link key={t.href} href={t.href} className="flex flex-col items-center -mt-5">

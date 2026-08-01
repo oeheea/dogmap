@@ -59,6 +59,15 @@ export default function Home() {
         </Link>
       </section>
 
+      <Link href="/map" className="flex items-center gap-3 rounded-2xl p-4 mb-4 border border-orange-100 bg-orange-50">
+        <span className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shrink-0">🗺️</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-sm">지도에서 찾기</div>
+          <div className="text-xs text-gray-500 mt-0.5">내 주변 반려동물 동반 장소를 한눈에</div>
+        </div>
+        <span className="text-orange-400">›</span>
+      </Link>
+
       <div className="grid grid-cols-2 gap-3 mb-6">
         {SHORTCUTS.map((s) => (
           <Link key={s.href} href={s.href} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
