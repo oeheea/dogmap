@@ -16,6 +16,7 @@ export default function PlaceDetail() {
   const [place, setPlace] = useState(null)
   const [reviews, setReviews] = useState([])
   const [user, setUser] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [rating, setRating] = useState(5)
   const [content, setContent] = useState('')
@@ -25,12 +26,14 @@ export default function PlaceDetail() {
   const [removePhoto, setRemovePhoto] = useState(false)
 
   const [editingCat, setEditingCat] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
   const [cat, setCat] = useState('')
+  const [catHint, setCatHint] = useState(false)
+  const [editingTags, setEditingTags] = useState(false)
+  const [baseTags, setBaseTags] = useState([])
   const [tagCounts, setTagCounts] = useState([])
+  const [tagMinShow, setTagMinShow] = useState(1)
   const [sort, setSort] = useState('recent')
   const [reportOpen, setReportOpen] = useState(false)
-  const [catHint, setCatHint] = useState(false)
 
   async function loadData() {
     const { data: placeData } = await supabase.from('places').select('*').eq('id', id).single()
@@ -45,10 +48,12 @@ export default function PlaceDetail() {
     }
     setIsAdmin(admin)
 
+    const { data: setting } = await supabase.from('app_settings').select('value').eq('key', 'tag_min_show').maybeSingle()
+    setTagMinShow(Number(setting?.value ?? 1))
+
     const { data: reviewData } = await supabase.from('reviews').select('*, review_likes(count)').eq('place_id', id).order('created_at', { ascending: false })
     const rev = reviewData ?? []
 
-    // 후기에서 체크된 특징 집계
     const counts = {}
     for (const r of rev) for (const t of (r.tags ?? [])) counts[t] = (counts[t] ?? 0) + 1
     setTagCounts(Object.entries(counts).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count))
@@ -129,9 +134,17 @@ export default function PlaceDetail() {
     setEditingCat(false); loadData()
   }
 
+  function toggleBaseTag(t) { setBaseTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]) }
+  async function saveBaseTags() {
+    const { error } = await supabase.from('places').update({ tags: baseTags }).eq('id', id)
+    if (error) { alert(error.message); return }
+    setEditingTags(false); loadData()
+  }
+
   if (!place) return <div className="p-6 text-gray-400">불러오는 중...</div>
 
   const avg = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null
+  const shownTags = tagCounts.filter((t) => t.count >= tagMinShow)
 
   return (
     <div className="max-w-lg mx-auto p-4">
@@ -170,23 +183,46 @@ export default function PlaceDetail() {
             <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">카테고리가 틀리면 🚩 신고 → "카테고리가 틀려요"에서 올바른 걸 골라 요청하세요. 서로 다른 여러 명이 같은 의견이면 자동으로 바뀌어요.</p>
           )}
 
-          {tagCounts.length > 0 && (
+          {shownTags.length > 0 && (
             <div className="mt-3">
               <div className="text-xs font-semibold text-gray-400 mb-1.5">방문자가 확인한 특징</div>
               <div className="flex flex-wrap gap-1.5">
-                {tagCounts.map((t) => (
-                  <span key={t.tag} className="text-xs bg-emerald-50 text-emerald-700 rounded-full px-2.5 py-0.5">{t.tag} · {t.count}</span>
-                ))}
+                {shownTags.map((t) => {
+                  const strong = t.count >= 3
+                  return (
+                    <span key={t.tag} className={`text-xs rounded-full px-2.5 py-0.5 ${strong ? 'bg-emerald-100 text-emerald-800 font-medium' : 'bg-emerald-50 text-emerald-600'}`}>{t.tag} · {t.count}</span>
+                  )
+                })}
               </div>
             </div>
           )}
 
-          {(place.tags ?? []).length > 0 && (
+          {(isAdmin || (place.tags ?? []).length > 0) && (
             <div className="mt-3">
-              <div className="text-xs font-semibold text-gray-400 mb-1.5">기본 정보</div>
-              <div className="flex flex-wrap gap-1.5">
-                {place.tags.map((t) => <span key={t} className="text-xs bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5">#{t}</span>)}
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="text-xs font-semibold text-gray-400">기본 정보</div>
+                {isAdmin && !editingTags && <button onClick={() => { setBaseTags(place.tags ?? []); setEditingTags(true) }} className="text-[11px] text-gray-400 hover:text-gray-700">✎ 수정</button>}
               </div>
+              {!editingTags ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {(place.tags ?? []).length === 0
+                    ? <span className="text-xs text-gray-300">기본 태그 없음</span>
+                    : place.tags.map((t) => <span key={t} className="text-xs bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5">#{t}</span>)}
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TAG_OPTIONS.map((t) => (
+                      <button type="button" key={t} onClick={() => toggleBaseTag(t)}
+                        className={`text-xs rounded-full px-2.5 py-1 border transition ${baseTags.includes(t) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}>{t}</button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={saveBaseTags} className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-sm">저장</button>
+                    <button onClick={() => setEditingTags(false)} className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm">취소</button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

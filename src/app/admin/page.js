@@ -11,11 +11,10 @@ export default function AdminPage() {
   const [stats, setStats] = useState(null)
   const [reports, setReports] = useState([])
   const [users, setUsers] = useState([])
-  const [threshold, setThreshold] = useState(3)
-  const [tagConfirm, setTagConfirm] = useState(5)
-  const [tagDelete, setTagDelete] = useState(5)
   const [catVotes, setCatVotes] = useState([])
+  const [threshold, setThreshold] = useState(3)
   const [catThreshold, setCatThreshold] = useState(10)
+  const [tagMinShow, setTagMinShow] = useState(1)
 
   async function checkAdmin() {
     const { data: u } = await supabase.auth.getUser()
@@ -29,7 +28,7 @@ export default function AdminPage() {
   }
   async function loadAll() {
     const { data: s } = await supabase.rpc('admin_stats')
-    if (s) { setStats(s); setThreshold(s.threshold ?? 3); setTagConfirm(s.tag_confirm ?? 5); setTagDelete(s.tag_delete ?? 5); setCatThreshold(s.category_threshold ?? 10) }
+    if (s) { setStats(s); setThreshold(s.threshold ?? 3); setCatThreshold(s.category_threshold ?? 10); setTagMinShow(s.tag_min_show ?? 1) }
     const { data: rp } = await supabase.rpc('admin_reports'); setReports(rp ?? [])
     const { data: us } = await supabase.rpc('admin_list_users'); setUsers(us ?? [])
     const { data: cv } = await supabase.rpc('admin_category_votes'); setCatVotes(cv ?? [])
@@ -50,28 +49,25 @@ export default function AdminPage() {
     const { error } = await supabase.rpc('admin_set_admin', { target: uid, val })
     if (error) { alert(error.message); return }; loadAll()
   }
+  async function applyCategory(pid, cat) {
+    if (!confirm(`이 가게를 "${cat}" (으)로 바꿀까요?`)) return
+    const { error } = await supabase.rpc('admin_apply_category', { pid, cat })
+    if (error) { alert(error.message); return }; loadAll()
+  }
   async function saveThreshold() {
     const { error } = await supabase.rpc('admin_set_threshold', { val: Number(threshold) })
     if (error) { alert(error.message); return }
     alert('저장했어요 🐾'); loadAll()
   }
-
-  async function saveTagThresholds() {
-    const { error } = await supabase.rpc('admin_set_tag_thresholds', { confirm_val: Number(tagConfirm), delete_val: Number(tagDelete) })
-    if (error) { alert(error.message); return }
-    alert('저장했어요 🐾'); loadAll()
-  }
-
   async function saveCatThreshold() {
     const { error } = await supabase.rpc('admin_set_category_threshold', { val: Number(catThreshold) })
     if (error) { alert(error.message); return }
     alert('저장했어요 🐾'); loadAll()
   }
-  async function applyCategory(pid, cat) {
-    if (!confirm(`이 가게를 "${cat}" (으)로 바꿀까요?`)) return
-    const { error } = await supabase.rpc('admin_apply_category', { pid, cat })
+  async function saveTagMinShow() {
+    const { error } = await supabase.rpc('admin_set_tag_min_show', { val: Number(tagMinShow) })
     if (error) { alert(error.message); return }
-    loadAll()
+    alert('저장했어요 🐾'); loadAll()
   }
 
   if (!loaded) return <div className="p-6 text-gray-400">불러오는 중...</div>
@@ -129,6 +125,7 @@ export default function AdminPage() {
               </li>
             ))}
           </ul>
+
           {catVotes.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-bold mb-2">카테고리 정정 요청</h3>
@@ -183,6 +180,16 @@ export default function AdminPage() {
               <input type="number" min="1" value={catThreshold} onChange={(e) => setCatThreshold(e.target.value)} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
               <span className="text-sm text-gray-500">명 이상</span>
               <button onClick={saveCatThreshold} className="ml-auto bg-blue-600 text-white rounded-lg px-4 py-2 text-sm">저장</button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div className="text-sm font-semibold mb-1">특징 표시 최소 인원</div>
+            <p className="text-xs text-gray-400 mb-3">후기에서 몇 명 이상이 체크한 특징만 가게에 표시할지 정해요. (1이면 한 명만 체크해도 표시)</p>
+            <div className="flex items-center gap-2">
+              <input type="number" min="1" value={tagMinShow} onChange={(e) => setTagMinShow(e.target.value)} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <span className="text-sm text-gray-500">명 이상</span>
+              <button onClick={saveTagMinShow} className="ml-auto bg-blue-600 text-white rounded-lg px-4 py-2 text-sm">저장</button>
             </div>
           </div>
         </div>
