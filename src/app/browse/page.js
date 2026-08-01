@@ -44,6 +44,10 @@ export default function BrowsePage() {
   }
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setUser(data.user)) }, [])
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get('cat')
+    if (c) setActiveCat(c)
+  }, [])
   useEffect(() => { load() }, [activeCat, activeTags])
 
   function toggleTag(t) {
