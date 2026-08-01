@@ -30,6 +30,7 @@ export default function PlaceDetail() {
   const [tagCounts, setTagCounts] = useState([])
   const [sort, setSort] = useState('recent')
   const [reportOpen, setReportOpen] = useState(false)
+  const [catHint, setCatHint] = useState(false)
 
   async function loadData() {
     const { data: placeData } = await supabase.from('places').select('*').eq('id', id).single()
@@ -148,11 +149,12 @@ export default function PlaceDetail() {
         {avg && <p className="text-sm mt-2"><span className="text-amber-500">★</span> <b>{avg}</b> <span className="text-gray-400">· 후기 {reviews.length}</span></p>}
 
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="flex justify-between items-center gap-2">
+          <div className="flex items-center gap-2">
             {!editingCat ? (
               <>
                 <span className="text-sm font-semibold bg-blue-50 text-blue-700 rounded-full px-3 py-1">{place.category ?? '기타'}</span>
-                {isAdmin && <button onClick={() => setEditingCat(true)} className="text-xs text-gray-400 hover:text-gray-700 shrink-0">✎ 카테고리 수정</button>}
+                <button onClick={() => setCatHint((v) => !v)} className="text-gray-300 text-sm leading-none" aria-label="카테고리 안내">ⓘ</button>
+                {isAdmin && <button onClick={() => setEditingCat(true)} className="ml-auto text-xs text-gray-400 hover:text-gray-700 shrink-0">✎ 카테고리 수정</button>}
               </>
             ) : (
               <div className="flex gap-2 w-full">
@@ -164,6 +166,9 @@ export default function PlaceDetail() {
               </div>
             )}
           </div>
+          {catHint && (
+            <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">카테고리가 틀리면 🚩 신고 → "카테고리가 틀려요"에서 올바른 걸 골라 요청하세요. 서로 다른 여러 명이 같은 의견이면 자동으로 바뀌어요.</p>
+          )}
 
           {tagCounts.length > 0 && (
             <div className="mt-3">
@@ -205,7 +210,7 @@ export default function PlaceDetail() {
           <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="후기를 남겨주세요" required rows={3}
             className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm" />
 
-          <div className="text-xs text-gray-400 mt-1">이 곳의 특징 (해당되는 것 체크)</div>
+          <div className="text-xs text-gray-400 mt-1">이 곳의 특징 <span className="text-gray-300">· 체크하면 "방문자가 확인한 특징"으로 함께 모여요</span></div>
           <div className="flex flex-wrap gap-1.5">
             {TAG_OPTIONS.map((t) => (
               <button type="button" key={t} onClick={() => toggleReviewTag(t)}
@@ -262,6 +267,9 @@ export default function PlaceDetail() {
           </li>
         ))}
       </ul>
+      {reviews.length === 0 && (
+        <div className="text-center text-gray-400 text-sm py-8">아직 후기가 없어요. 첫 후기를 남겨보세요 🐾</div>
+      )}
 
       {reportOpen && <ReportModal place={place} user={user} onClose={() => setReportOpen(false)} />}
     </div>

@@ -44,9 +44,17 @@ export default function MyPage() {
   return (
     <div className="max-w-lg mx-auto p-4">
       <h1 className="text-2xl font-extrabold mb-4">내 폴더</h1>
-      {folders.length === 0 && <p className="text-gray-400 text-sm">아직 폴더가 없어요. 지도에서 가게를 저장해보세요.</p>}
-      <ul className="flex flex-col gap-2.5">{folders.map((f) => Row(f))}</ul>
-
+      {folders.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="text-5xl mb-3">📁</div>
+          <p className="font-semibold text-gray-700">아직 저장한 폴더가 없어요</p>
+          <p className="text-sm text-gray-400 mt-1">마음에 드는 곳을 폴더로 모아보세요 🐾</p>
+          <Link href="/map" className="inline-block mt-4 bg-blue-600 text-white rounded-full px-6 py-2.5 text-sm font-medium">지도에서 저장하러 가기 →</Link>
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-2.5">{folders.map((f) => Row(f))}</ul>
+      )}
+      
       {subs.length > 0 && (
         <>
           <h2 className="text-lg font-bold mt-6 mb-2">구독한 폴더</h2>
