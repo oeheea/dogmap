@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [catThreshold, setCatThreshold] = useState(10)
   const [tagMinShow, setTagMinShow] = useState(1)
   const [searchRadius, setSearchRadius] = useState(2)
+  const [userQuery, setUserQuery] = useState('')
 
   async function checkAdmin() {
     const { data: u } = await supabase.auth.getUser()
@@ -95,7 +96,7 @@ export default function AdminPage() {
 
       {tab === 'stats' && stats && (
         <div className="grid grid-cols-2 gap-2">
-          {[['가게', stats.places], ['숨김', stats.hidden], ['신고', stats.reports], ['사용자', stats.users], ['후기', stats.reviews], ['산책', stats.walks]].map(([l, v]) => (
+          {[['가게', stats.places], ['숨김', stats.hidden], ['신고', stats.reports], ['사용자', stats.users], ['후기', stats.reviews]].map(([l, v]) => (
             <div key={l} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
               <div className="text-2xl font-extrabold">{v ?? 0}</div>
               <div className="text-xs text-gray-400 mt-1">{l}</div>
@@ -152,19 +153,31 @@ export default function AdminPage() {
       )}
 
       {tab === 'users' && (
-        <ul className="flex flex-col gap-2">
-          {users.map((u) => (
-            <li key={u.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex justify-between items-center gap-2">
-              <div className="min-w-0">
-                <div className="font-semibold text-sm truncate">{u.nickname ?? '(닉네임 없음)'}{u.is_admin && <span className="text-[10px] text-red-500"> · 관리자</span>}</div>
-                <div className="text-[11px] text-gray-400 truncate">{u.email}</div>
-              </div>
-              <button onClick={() => toggleAdmin(u.id, !u.is_admin)} className={`text-xs rounded-full px-3 py-1.5 shrink-0 ${u.is_admin ? 'border border-gray-200 text-gray-500' : 'bg-red-500 text-white'}`}>
-                {u.is_admin ? '관리자 해제' : '관리자 지정'}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 mb-3">
+            <span className="text-gray-400">🔍</span>
+            <input value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="닉네임·이메일 검색"
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder-gray-400" />
+            {userQuery && <button onClick={() => setUserQuery('')} className="text-gray-300 text-sm">✕</button>}
+          </div>
+          <ul className="flex flex-col gap-2">
+            {users.filter((u) => {
+              const q = userQuery.trim().toLowerCase()
+              if (!q) return true
+              return (u.nickname ?? '').toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q)
+            }).map((u) => (
+              <li key={u.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex justify-between items-center gap-2">
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm truncate">{u.nickname ?? '(닉네임 없음)'}{u.is_admin && <span className="text-[10px] text-red-500"> · 관리자</span>}</div>
+                  <div className="text-[11px] text-gray-400 truncate">{u.email}</div>
+                </div>
+                <button onClick={() => toggleAdmin(u.id, !u.is_admin)} className={`text-xs rounded-full px-3 py-1.5 shrink-0 ${u.is_admin ? 'border border-gray-200 text-gray-500' : 'bg-red-500 text-white'}`}>
+                  {u.is_admin ? '관리자 해제' : '관리자 지정'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {tab === 'settings' && (
