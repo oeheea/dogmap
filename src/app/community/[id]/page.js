@@ -13,6 +13,7 @@ export default function PostDetail() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [post, setPost] = useState(null)
+  const [author, setAuthor] = useState(null)
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -25,8 +26,19 @@ export default function PostDetail() {
     const { data: u } = await supabase.auth.getUser(); setUser(u.user)
     const { data: p } = await supabase.from('posts').select('*').eq('id', id).single()
     setPost(p)
+    if (p) {
+      const { data: prof } = await supabase.from('profiles').select('id, nickname, avatar_url').eq('id', p.user_id).single()
+      setAuthor(prof)
+    }
     const { data: cs } = await supabase.from('comments').select('*').eq('post_id', id).order('created_at')
-    setComments(cs ?? [])
+    const list = cs ?? []
+    const cids = [...new Set(list.map((c) => c.user_id))]
+    let cmap = {}
+    if (cids.length) {
+      const { data: cprofs } = await supabase.from('profiles').select('id, nickname, avatar_url').in('id', cids)
+      cmap = Object.fromEntries((cprofs ?? []).map((p) => [p.id, p]))
+    }
+    setComments(list.map((c) => ({ ...c, author: cmap[c.user_id] })))
     setLoading(false)
   }
   useEffect(() => { load() }, [id])
@@ -78,14 +90,22 @@ export default function PostDetail() {
           </div>
         ) : (
           <>
-            <span className="text-[11px] bg-blue-50 text-blue-700 rounded-full px-2 py-0.5">{post.category}</span>
-            <h1 className="text-xl font-extrabold mt-2">{post.title}</h1>
-            <div className="text-xs text-gray-400 mt-1">
-              <Link href={`/profile/${post.user_id}`} className="hover:underline">{post.nickname ?? '익명'}</Link> · {new Date(post.created_at).toLocaleDateString('ko-KR')}
+            <div className="flex items-center gap-2.5 mb-3">
+              <Link href={`/profile/${post.user_id}`} className="shrink-0">
+                {author?.avatar_url
+                  ? <img src={author.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+                  : <span className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">{(author?.nickname ?? post.nickname ?? '?').slice(0, 1)}</span>}
+              </Link>
+              <div className="min-w-0 flex-1">
+                <Link href={`/profile/${post.user_id}`} className="text-sm font-semibold hover:underline block truncate">{author?.nickname ?? post.nickname ?? '익명'}</Link>
+                <div className="text-[11px] text-gray-400">{new Date(post.created_at).toLocaleDateString('ko-KR')}</div>
+              </div>
+              <span className="text-[11px] bg-blue-50 text-blue-700 rounded-full px-2 py-0.5 shrink-0">{post.category}</span>
             </div>
-            <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">{post.content}</p>
+            <h1 className="text-xl font-extrabold">{post.title}</h1>
+            <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap leading-relaxed">{post.content}</p>
             {user && user.id === post.user_id && (
-              <div className="flex gap-3 mt-3">
+              <div className="flex gap-3 mt-4 pt-3 border-t border-gray-50">
                 <button onClick={startEdit} className="text-xs text-blue-500">수정</button>
                 <button onClick={delPost} className="text-xs text-red-400">삭제</button>
               </div>
@@ -105,11 +125,20 @@ export default function PostDetail() {
       <ul className="flex flex-col gap-2">
         {comments.map((c) => (
           <li key={c.id} className="bg-white rounded-xl border border-gray-100 p-3">
-            <div className="flex justify-between items-center">
-              <Link href={`/profile/${c.user_id}`} className="text-sm font-semibold hover:underline">{c.nickname ?? '익명'}</Link>
-              {user && user.id === c.user_id && <button onClick={() => delComment(c.id)} className="text-xs text-gray-300 hover:text-red-500">삭제</button>}
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex items-start gap-2 min-w-0">
+                <Link href={`/profile/${c.user_id}`} className="shrink-0">
+                  {c.author?.avatar_url
+                    ? <img src={c.author.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                    : <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold">{(c.author?.nickname ?? c.nickname ?? '?').slice(0, 1)}</span>}
+                </Link>
+                <div className="min-w-0">
+                  <Link href={`/profile/${c.user_id}`} className="text-sm font-semibold hover:underline">{c.author?.nickname ?? c.nickname ?? '익명'}</Link>
+                  <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{c.content}</p>
+                </div>
+              </div>
+              {user && user.id === c.user_id && <button onClick={() => delComment(c.id)} className="text-xs text-gray-300 hover:text-red-500 shrink-0">삭제</button>}
             </div>
-            <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{c.content}</p>
           </li>
         ))}
       </ul>
