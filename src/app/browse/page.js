@@ -7,16 +7,9 @@ import Loading from '@/components/Loading'
 import { formatAddress } from '@/lib/format'
 import ReportModal from '@/components/ReportModal'
 import { CATEGORIES, catTile } from '@/lib/categories'
+import { haversine } from '@/lib/geo'
 
 const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동가방 필수', '마당 있음', '자유 산책 가능', '실내 동반 가능', '실외에만 가능', '무게 제한 있음']
-
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371000
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(a))
-}
 
 export default function BrowsePage() {
   const [user, setUser] = useState(null)

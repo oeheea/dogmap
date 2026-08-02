@@ -5,16 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { shapeSvg } from '@/lib/shapes'
 import Loading from '@/components/Loading'
 import Link from 'next/link'
-
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371000
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(a))
-}
-function fmtDist(m) { return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(2)}km` }
-function fmtTime(s) { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}` }
+import { haversine } from '@/lib/geo'
+import { fmtDist, fmtTime } from '@/lib/format'
 
 function computeStats(rows) {
   const now = new Date()

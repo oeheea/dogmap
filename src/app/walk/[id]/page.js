@@ -6,9 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { shapeSvg } from '@/lib/shapes'
 import Loading from '@/components/Loading'
 import { useParams, useRouter } from 'next/navigation'
-
-function fmtDist(m) { return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(2)}km` }
-function fmtTime(s) { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}` }
+import { fmtDist, fmtTime } from '@/lib/format'
 
 export default function WalkDetail() {
   const { id } = useParams()

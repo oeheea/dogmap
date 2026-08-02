@@ -9,3 +9,6 @@ export function formatAddress(addr) {
   const out = [sido, gu, road, num].filter(Boolean)
   return out.length ? out.join(' ') : parts.slice(0, 3).join(' ')
 }
+
+export function fmtDist(m) { return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(2)}km` }
+export function fmtTime(s) { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}` }
