@@ -11,7 +11,7 @@ export const metadata = {
   title: "멍냥플레이스 · 반려동물 동반 장소 지도",
   description: "반려동물과 함께 갈 수 있는 카페·밥집·펜션을 찾고, 후기 남기고, 즐겨찾기 하는 지도 🐾",
   manifest: "/manifest.json",
-  icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "멍냥플레이스" },
   openGraph: {
     title: "멍냥플레이스 🐾",
