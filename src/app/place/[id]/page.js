@@ -7,8 +7,8 @@ import StarRating from '@/components/StarRating'
 import ReportModal from '@/components/ReportModal'
 import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
+import { CATEGORY_VALUES } from '@/lib/categories'
 
-const CATEGORIES = ['애견카페', '반려동물 동반 카페', '반려동물 동반 밥집', '반려동물 동반 펜션', '기타']
 const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동가방 필수', '마당 있음', '자유 산책 가능', '실내 동반 가능', '실외에만 가능', '무게 제한 있음']
 
 export default function PlaceDetail() {
@@ -79,9 +79,7 @@ export default function PlaceDetail() {
     return new Date(b.created_at) - new Date(a.created_at)
   })
 
-  function toggleReviewTag(t) {
-    setReviewTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
-  }
+  function toggleReviewTag(t) { setReviewTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]) }
 
   async function submitReview(e) {
     e.preventDefault()
@@ -172,7 +170,7 @@ export default function PlaceDetail() {
             ) : (
               <div className="flex gap-2 w-full">
                 <select value={cat} onChange={(e) => setCat(e.target.value)} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm">
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {CATEGORY_VALUES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <button onClick={saveCategory} className="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm">저장</button>
                 <button onClick={() => { setEditingCat(false); setCat(place.category ?? '기타') }} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">취소</button>

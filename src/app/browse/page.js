@@ -6,15 +6,9 @@ import { supabase } from '@/lib/supabase'
 import Loading from '@/components/Loading'
 import { formatAddress } from '@/lib/format'
 import ReportModal from '@/components/ReportModal'
+import { CATEGORIES, catTile } from '@/lib/categories'
 
 const TAG_OPTIONS = ['반려동물 전용 메뉴O', '대형견 가능', '이동가방 필수', '마당 있음', '자유 산책 가능', '실내 동반 가능', '실외에만 가능', '무게 제한 있음']
-const CATEGORIES = [
-  { key: '애견카페', label: '애견카페' },
-  { key: '카페', label: '반려동물 동반 카페' },
-  { key: '밥집', label: '반려동물 동반 밥집' },
-  { key: '펜션', label: '반려동물 동반 펜션' },
-  { key: '기타', label: '기타' },
-]
 
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371000
@@ -22,14 +16,6 @@ function haversine(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
   return 2 * R * Math.asin(Math.sqrt(a))
-}
-function catTile(cat) {
-  const c = cat || ''
-  if (c.includes('애견카페')) return { icon: '🐶', cls: 'bg-orange-50' }
-  if (c.includes('카페')) return { icon: '☕', cls: 'bg-amber-50' }
-  if (c.includes('밥집') || c.includes('식당')) return { icon: '🍽️', cls: 'bg-rose-50' }
-  if (c.includes('펜션') || c.includes('호텔')) return { icon: '🏡', cls: 'bg-emerald-50' }
-  return { icon: '📍', cls: 'bg-gray-100' }
 }
 
 export default function BrowsePage() {
@@ -101,10 +87,7 @@ export default function BrowsePage() {
       .then(({ data }) => {
         if (!alive) return
         const g = {}
-        for (const r of (data ?? [])) {
-          const likes = r.review_likes?.[0]?.count ?? 0
-          ;(g[r.place_id] = g[r.place_id] || []).push({ url: r.image_url, likes })
-        }
+        for (const r of (data ?? [])) { const likes = r.review_likes?.[0]?.count ?? 0; (g[r.place_id] = g[r.place_id] || []).push({ url: r.image_url, likes }) }
         const m = {}
         for (const pid in g) { g[pid].sort((a, b) => b.likes - a.likes); m[pid] = g[pid].slice(0, 4).map((x) => x.url) }
         setPhotoMap(m)
@@ -122,7 +105,7 @@ export default function BrowsePage() {
         <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3.5 py-2.5">
           <span className="text-gray-400">🔍</span>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="지역·역 이름 (예: 합정역)"
-            className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400" />
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder-gray-400" />
           {query && <button type="button" onClick={clearSearch} className="text-gray-300 text-sm">✕</button>}
         </div>
         <button type="submit" disabled={searching} className="bg-blue-600 text-white rounded-xl px-4 text-sm font-medium disabled:opacity-50">
@@ -141,7 +124,8 @@ export default function BrowsePage() {
       <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
         <button onClick={() => setActiveCat('')} className={`whitespace-nowrap text-sm rounded-full px-3.5 py-1.5 border transition ${activeCat === '' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200'}`}>전체</button>
         {CATEGORIES.map((c) => (
-          <button key={c.key} onClick={() => setActiveCat(c.key)} className={`whitespace-nowrap text-sm rounded-full px-3.5 py-1.5 border transition ${activeCat === c.key ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>{c.label}</button>
+          <button key={c.value} onClick={() => setActiveCat(c.value)}
+            className={`whitespace-nowrap text-sm rounded-full px-3.5 py-1.5 border transition ${activeCat === c.value ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>{c.label}</button>
         ))}
       </div>
 

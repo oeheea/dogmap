@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { formatAddress } from '@/lib/format'
 import ShapeIcon from '@/components/ShapeIcon'
 import Loading from '@/components/Loading'
+import { catTile } from '@/lib/categories'
 
 const SHORTCUTS = [
   { href: '/my', label: '내 폴더', icon: '📁', bg: 'bg-rose-50' },
@@ -14,14 +15,6 @@ const SHORTCUTS = [
   { href: '/feed', label: '피드', icon: '📰', bg: 'bg-violet-50' },
 ]
 
-function catTile(cat) {
-  const c = cat || ''
-  if (c.includes('애견카페')) return { icon: '🐶', cls: 'bg-orange-50' }
-  if (c.includes('카페')) return { icon: '☕', cls: 'bg-amber-50' }
-  if (c.includes('밥집') || c.includes('식당')) return { icon: '🍽️', cls: 'bg-rose-50' }
-  if (c.includes('펜션') || c.includes('호텔')) return { icon: '🏡', cls: 'bg-emerald-50' }
-  return { icon: '📍', cls: 'bg-gray-100' }
-}
 
 export default function Home() {
   const [user, setUser] = useState(null)
