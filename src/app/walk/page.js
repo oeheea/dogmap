@@ -16,6 +16,32 @@ function haversine(lat1, lng1, lat2, lng2) {
 function fmtDist(m) { return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(2)}km` }
 function fmtTime(s) { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}` }
 
+function computeStats(rows) {
+  const now = new Date()
+  const day = (now.getDay() + 6) % 7 // 월=0
+  const weekStart = new Date(now); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(now.getDate() - day)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const labels = ['일', '월', '화', '수', '목', '금', '토']
+  const days = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setHours(0, 0, 0, 0); d.setDate(now.getDate() - i)
+    days.push({ date: d, dist: 0, label: labels[d.getDay()] })
+  }
+  let weekCount = 0, weekDist = 0, weekDur = 0, monthCount = 0, monthDist = 0, totalDist = 0, totalCount = 0
+  for (const w of rows) {
+    const c = new Date(w.created_at)
+    const dist = w.distance || 0
+    totalDist += dist; totalCount++
+    if (c >= weekStart) { weekCount++; weekDist += dist; weekDur += (w.duration_sec || 0) }
+    if (c >= monthStart) { monthCount++; monthDist += dist }
+    for (const b of days) {
+      const next = new Date(b.date); next.setDate(b.date.getDate() + 1)
+      if (c >= b.date && c < next) { b.dist += dist; break }
+    }
+  }
+  return { weekCount, weekDist, weekDur, monthCount, monthDist, totalDist, totalCount, days }
+}
+
 export default function WalkPage() {
   const mapRef = useRef(null)
   const mapObjRef = useRef(null)
@@ -36,6 +62,7 @@ export default function WalkPage() {
   const [distance, setDistance] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [walks, setWalks] = useState([])
+  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { pawRef.current = paw }, [paw])
@@ -45,6 +72,7 @@ export default function WalkPage() {
       setUser(data.user)
       if (data.user) {
         loadWalks(data.user.id)
+        loadStats(data.user.id)
         const { data: pr } = await supabase.from('profiles').select('paw_stamp_url, paw_color').eq('id', data.user.id).single()
         if (pr) setPaw({ url: pr.paw_stamp_url || null, color: pr.paw_color || '#2563eb' })
       }
@@ -74,6 +102,10 @@ export default function WalkPage() {
     const { data } = await supabase.from('walks').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20)
     setWalks(data ?? [])
   }
+  async function loadStats(uid) {
+    const { data } = await supabase.from('walks').select('distance, duration_sec, created_at').eq('user_id', uid)
+    setStats(computeStats(data ?? []))
+  }
 
   function dropPaw(point) {
     const p = pawRef.current
@@ -99,19 +131,7 @@ export default function WalkPage() {
     if (polylineRef.current) polylineRef.current.setPath(pathRef.current)
     if (prev) { distRef.current += haversine(prev.getLat(), prev.getLng(), lat, lng); setDistance(distRef.current) }
     if (!lastPawRef.current || haversine(lastPawRef.current.getLat(), lastPawRef.current.getLng(), lat, lng) >= 15) {
-      const base = lastPawRef.current || prev
-      let angle = 0, px = 0, py = 0
-      if (base) {
-        const dLat = lat - base.getLat(), dLng = lng - base.getLng()
-        const dx = dLng, dy = -dLat
-        const norm = Math.hypot(dx, dy) || 1
-        angle = Math.atan2(dx, -dy) * 180 / Math.PI
-        pawCountRef.current += 1
-        const sign = pawCountRef.current % 2 ? 1 : -1
-        px = (-dy / norm) * 7 * sign
-        py = (dx / norm) * 7 * sign
-      }
-      dropPaw(point, angle, px, py)
+      dropPaw(point)
       lastPawRef.current = point
     }
     mapObjRef.current.setCenter(point)
@@ -140,7 +160,7 @@ export default function WalkPage() {
     const path = pathRef.current.map((p) => [p.getLat(), p.getLng()])
     if (user && path.length > 1) {
       await supabase.from('walks').insert({ user_id: user.id, path, distance: Math.round(distRef.current), duration_sec: dur })
-      loadWalks(user.id)
+      loadWalks(user.id); loadStats(user.id)
       alert(`산책 완료! ${fmtDist(distRef.current)} · ${fmtTime(dur)} 🐾`)
     } else {
       alert('기록된 경로가 없어요 (야외에서 이동하며 해보세요)')
@@ -166,6 +186,35 @@ export default function WalkPage() {
           <button onClick={startWalk} className="w-full bg-blue-600 text-white rounded-full py-3.5 font-bold">🐾 산책 시작</button>
         ) : (
           <button onClick={stopWalk} className="w-full bg-red-500 text-white rounded-full py-3.5 font-bold">■ 산책 종료</button>
+        )}
+
+        {!tracking && stats && stats.totalCount > 0 && (
+          <div className="mt-6">
+            <h2 className="font-bold mb-2">산책 통계</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div><div className="text-lg font-extrabold">{stats.weekCount}</div><div className="text-[11px] text-gray-400">이번 주 횟수</div></div>
+                <div><div className="text-lg font-extrabold">{fmtDist(stats.weekDist)}</div><div className="text-[11px] text-gray-400">이번 주 거리</div></div>
+                <div><div className="text-lg font-extrabold">{fmtTime(stats.weekDur)}</div><div className="text-[11px] text-gray-400">이번 주 시간</div></div>
+              </div>
+              <div className="flex items-end justify-between gap-1.5 mt-4" style={{ height: '92px' }}>
+                {stats.days.map((d, i) => {
+                  const max = Math.max(...stats.days.map((x) => x.dist), 1)
+                  const h = d.dist > 0 ? Math.max(6, Math.round((d.dist / max) * 72)) : 3
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-1">
+                      <div className="w-full rounded-t" style={{ height: h + 'px', background: d.dist > 0 ? (paw?.color || '#2563eb') : '#e5e7eb' }} />
+                      <div className="text-[10px] text-gray-400">{d.label}</div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex justify-between text-[11px] text-gray-400 mt-3 pt-3 border-t border-gray-50">
+                <span>이번 달 {stats.monthCount}번 · {fmtDist(stats.monthDist)}</span>
+                <span>누적 {fmtDist(stats.totalDist)}</span>
+              </div>
+            </div>
+          </div>
         )}
 
         {!tracking && walks.length > 0 && (
