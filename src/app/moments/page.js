@@ -86,25 +86,33 @@ export default function MomentsPage() {
       <ul className="flex flex-col gap-5">
         {moments.map((m) => (
           <li key={m.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center gap-2 p-3">
-              <Link href={`/profile/${m.user_id}`} className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5 p-3">
+              <Link href={`/profile/${m.user_id}`} className="shrink-0">
                 {m.author?.avatar_url
-                  ? <img src={m.author.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                  : <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">{(m.author?.nickname ?? m.nickname ?? '?').slice(0, 1)}</span>}
-                <span className="text-sm font-semibold">{m.author?.nickname ?? m.nickname ?? '익명'}</span>
+                  ? <img src={m.author.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+                  : <span className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">{(m.author?.nickname ?? m.nickname ?? '?').slice(0, 1)}</span>}
               </Link>
+              <div className="min-w-0">
+                <Link href={`/profile/${m.user_id}`} className="text-sm font-semibold leading-tight truncate block">{m.author?.nickname ?? m.nickname ?? '익명'}</Link>
+                {m.places?.name && m.place_id && (
+                  <Link href={`/place/${m.place_id}`} className="text-[11px] text-gray-400 leading-tight truncate block">📍 {m.places.name}</Link>
+                )}
+              </div>
             </div>
-            <img src={m.image_url} alt="" className="w-full max-h-[70vh] object-cover" />
+
+            <img src={m.image_url} alt="" className="w-full aspect-square object-cover bg-gray-50" />
+
             <div className="p-3">
-              <button onClick={() => toggleLike(m)} className="text-sm">
-                <span>{m.liked ? '❤️' : '🤍'}</span> {m.likeCount}
-              </button>
-              {m.caption && <p className="text-sm mt-2"><b>{m.author?.nickname ?? m.nickname}</b> {m.caption}</p>}
-              {m.places?.name && m.place_id && (
-                <Link href={`/place/${m.place_id}`} className="inline-block mt-2 text-xs bg-blue-50 text-blue-700 rounded-full px-2.5 py-0.5">📍 {m.places.name}</Link>
+              <div className="flex items-center gap-4">
+                <button onClick={() => toggleLike(m)} className="text-2xl leading-none active:scale-90 transition" aria-label="좋아요">{m.liked ? '❤️' : '🤍'}</button>
+                <Link href={`/moments/${m.id}`} className="text-2xl leading-none" aria-label="댓글">💬</Link>
+              </div>
+              {m.likeCount > 0 && <div className="text-sm font-semibold mt-2">좋아요 {m.likeCount}개</div>}
+              {m.caption && <p className="text-sm mt-1"><b>{m.author?.nickname ?? m.nickname}</b> {m.caption}</p>}
+              {m.commentCount > 0 && (
+                <Link href={`/moments/${m.id}`} className="block text-sm text-gray-400 mt-1">댓글 {m.commentCount}개 모두 보기</Link>
               )}
               <div className="text-[11px] text-gray-300 mt-2">{new Date(m.created_at).toLocaleDateString('ko-KR')}</div>
-              <Link href={`/moments/${m.id}`} className="block text-xs text-gray-400 mt-1">댓글 {m.commentCount}개 보기 →</Link>
             </div>
           </li>
         ))}

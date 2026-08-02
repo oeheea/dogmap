@@ -39,7 +39,13 @@ export default function MomentDetail() {
         setLiked(!!myl)
       }
       const { data: cs } = await supabase.from('moment_comments').select('*').eq('moment_id', id).order('created_at')
-      setComments(cs ?? [])
+      const cids = [...new Set((cs ?? []).map((c) => c.user_id))]
+      let cmap = {}
+      if (cids.length) {
+        const { data: cprofs } = await supabase.from('profiles').select('id, nickname, avatar_url').in('id', cids)
+        cmap = Object.fromEntries((cprofs ?? []).map((p) => [p.id, p]))
+      }
+      setComments((cs ?? []).map((c) => ({ ...c, author: cmap[c.user_id] })))
     }
     setLoading(false)
   }
@@ -135,11 +141,20 @@ export default function MomentDetail() {
       <ul className="flex flex-col gap-2">
         {comments.map((c) => (
           <li key={c.id} className="bg-white rounded-xl border border-gray-100 p-3">
-            <div className="flex justify-between items-center">
-              <Link href={`/profile/${c.user_id}`} className="text-sm font-semibold hover:underline">{c.nickname ?? '익명'}</Link>
-              {user && user.id === c.user_id && <button onClick={() => delComment(c.id)} className="text-xs text-gray-300 hover:text-red-500">삭제</button>}
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex items-start gap-2 min-w-0">
+                <Link href={`/profile/${c.user_id}`} className="shrink-0">
+                  {c.author?.avatar_url
+                    ? <img src={c.author.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                    : <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[11px] font-bold">{(c.author?.nickname ?? c.nickname ?? '?').slice(0, 1)}</span>}
+                </Link>
+                <div className="min-w-0">
+                  <Link href={`/profile/${c.user_id}`} className="text-sm font-semibold hover:underline">{c.author?.nickname ?? c.nickname ?? '익명'}</Link>
+                  <p className="text-sm text-gray-700 mt-0.5">{c.content}</p>
+                </div>
+              </div>
+              {user && user.id === c.user_id && <button onClick={() => delComment(c.id)} className="text-xs text-gray-300 hover:text-red-500 shrink-0">삭제</button>}
             </div>
-            <p className="text-sm text-gray-700 mt-1">{c.content}</p>
           </li>
         ))}
       </ul>
