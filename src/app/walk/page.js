@@ -66,7 +66,7 @@ export default function WalkPage() {
         loadWalks(data.user.id)
         loadStats(data.user.id)
         const { data: pr } = await supabase.from('profiles').select('paw_stamp_url, paw_color').eq('id', data.user.id).single()
-        if (pr) setPaw({ url: pr.paw_stamp_url || null, color: pr.paw_color || '#2563eb' })
+        if (pr) setPaw({ url: pr.paw_stamp_url || null, color: pr.paw_color || '#DC4E24' })
       }
       setLoading(false)
     })
@@ -108,7 +108,7 @@ export default function WalkPage() {
       pawsRef.current.push(m)
     } else {
       const el = document.createElement('div')
-      el.innerHTML = shapeSvg('paw', p?.color || '#2563eb', 22)
+      el.innerHTML = shapeSvg('paw', p?.color || '#DC4E24', 22)
       const ov = new window.kakao.maps.CustomOverlay({ position: point, content: el, xAnchor: 0.5, yAnchor: 0.5 })
       ov.setMap(mapObjRef.current)
       pawsRef.current.push(ov)
@@ -136,7 +136,7 @@ export default function WalkPage() {
     setDistance(0); setElapsed(0)
     pawsRef.current.forEach((o) => o.setMap(null)); pawsRef.current = []
     if (polylineRef.current) polylineRef.current.setMap(null)
-    polylineRef.current = new window.kakao.maps.Polyline({ strokeWeight: 5, strokeColor: pawRef.current?.color || '#2563eb', strokeOpacity: 0.85 })
+    polylineRef.current = new window.kakao.maps.Polyline({ strokeWeight: 5, strokeColor: pawRef.current?.color || '#DC4E24', strokeOpacity: 0.85 })
     polylineRef.current.setMap(mapObjRef.current)
     setTracking(true)
     startTimeRef.current = Date.now()
@@ -195,7 +195,7 @@ export default function WalkPage() {
                   const h = d.dist > 0 ? Math.max(6, Math.round((d.dist / max) * 72)) : 3
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-1">
-                      <div className="w-full rounded-t" style={{ height: h + 'px', background: d.dist > 0 ? (paw?.color || '#2563eb') : '#e5e7eb' }} />
+                      <div className="w-full rounded-t" style={{ height: h + 'px', background: d.dist > 0 ? (paw?.color || '#DC4E24') : '#e5e7eb' }} />
                       <div className="text-[10px] text-gray-400">{d.label}</div>
                     </div>
                   )

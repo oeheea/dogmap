@@ -28,7 +28,7 @@ export default function WalkDetail() {
       setWalk(w); setLoading(false)
       if (w?.user_id) {
         const { data: pr } = await supabase.from('profiles').select('paw_stamp_url, paw_color').eq('id', w.user_id).single()
-        if (go && pr) setPaw({ url: pr.paw_stamp_url || null, color: pr.paw_color || '#2563eb' })
+        if (go && pr) setPaw({ url: pr.paw_stamp_url || null, color: pr.paw_color || '#DC4E24' })
       }
     })()
     return () => { go = false }
@@ -38,7 +38,7 @@ export default function WalkDetail() {
     if (!walk || !walk.path || walk.path.length === 0) return
     let cancelled = false
     const KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY
-    const theme = paw?.color || '#2563eb'
+    const theme = paw?.color || '#DC4E24'
 
     async function prepAndDraw() {
       const stampUrl = paw?.url || null

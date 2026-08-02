@@ -89,7 +89,7 @@ export default function SavePlaceModal({ place, userId, onClose, onSaved }) {
             <div className="grid grid-cols-4 gap-2 mb-5">
               {SHAPES.map((s) => (
                 <button key={s} type="button" onClick={() => setNewIcon(s)} className={`h-11 rounded-xl flex items-center justify-center ${newIcon === s ? 'bg-blue-600' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                  <ShapeIcon shape={s} color={newIcon === s ? '#ffffff' : '#2563eb'} size={20} />
+                  <ShapeIcon shape={s} color={newIcon === s ? '#ffffff' : '#DC4E24'} size={20} />
                 </button>
               ))}
             </div>

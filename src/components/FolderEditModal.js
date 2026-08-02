@@ -51,7 +51,7 @@ export default function FolderEditModal({ folder, onClose, onSaved, onDeleted })
           {SHAPES.map((s) => (
             <button key={s} type="button" onClick={() => setIcon(s)}
               className={`h-12 rounded-xl flex items-center justify-center transition ${icon === s ? 'bg-blue-600' : 'bg-gray-50 hover:bg-gray-100'}`}>
-              <ShapeIcon shape={s} color={icon === s ? '#ffffff' : '#2563eb'} size={22} />
+              <ShapeIcon shape={s} color={icon === s ? '#ffffff' : '#DC4E24'} size={22} />
             </button>
           ))}
         </div>
