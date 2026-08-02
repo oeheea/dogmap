@@ -7,18 +7,20 @@ import { formatAddress } from '@/lib/format'
 import ShapeIcon from '@/components/ShapeIcon'
 import Loading from '@/components/Loading'
 import { catTile } from '@/lib/categories'
+import Icon from '@/components/Icon'
 
 const SHORTCUTS = [
-  { href: '/my', label: '내 폴더', icon: '📁', bg: 'bg-rose-50' },
-  { href: '/moments', label: '모먼트', icon: '📸', bg: 'bg-pink-50' },
-  { href: '/community', label: '커뮤니티', icon: '💬', bg: 'bg-amber-50' },
-  { href: '/feed', label: '피드', icon: '📰', bg: 'bg-violet-50' },
+  { href: '/my', label: '내 폴더', icon: 'folder', bg: 'bg-rose-50', color: 'text-rose-500' },
+  { href: '/moments', label: '모먼트', icon: 'camera', bg: 'bg-pink-50', color: 'text-pink-500' },
+  { href: '/community', label: '커뮤니티', icon: 'message', bg: 'bg-amber-50', color: 'text-amber-600' },
+  { href: '/feed', label: '피드', icon: 'news', bg: 'bg-violet-50', color: 'text-violet-500' },
 ]
 
 
 export default function Home() {
   const [user, setUser] = useState(null)
   const [folders, setFolders] = useState([])
+  const [subs, setSubs] = useState([])
   const [recent, setRecent] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -32,6 +34,8 @@ export default function Home() {
       if (u.user) {
         const { data: fs } = await supabase.from('folders').select('*, saved_places(count)').eq('user_id', u.user.id).order('created_at')
         setFolders(fs ?? [])
+        const { data: sb } = await supabase.from('folder_subscriptions').select('folders(*, saved_places(count))').eq('user_id', u.user.id)
+        setSubs((sb ?? []).map((d) => d.folders).filter(Boolean))
       }
       setLoading(false)
     }
@@ -53,7 +57,7 @@ export default function Home() {
       </section>
 
       <Link href="/map" className="flex items-center gap-3 rounded-2xl p-4 mb-4 border border-orange-100 bg-orange-50">
-        <span className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shrink-0">🗺️</span>
+        <span className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-blue-600 shrink-0"><Icon name="map" size={24} /></span>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-sm">지도에서 찾기</div>
           <div className="text-xs text-gray-500 mt-0.5">내 주변 반려동물 동반 장소를 한눈에</div>
@@ -64,7 +68,7 @@ export default function Home() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         {SHORTCUTS.map((s) => (
           <Link key={s.href} href={s.href} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition">
-            <span className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center text-xl shrink-0`}>{s.icon}</span>
+            <span className={`w-11 h-11 rounded-xl ${s.bg} ${s.color} flex items-center justify-center shrink-0`}><Icon name={s.icon} size={22} /></span>
             <span className="font-semibold text-sm">{s.label}</span>
           </Link>
         ))}
@@ -78,6 +82,19 @@ export default function Home() {
               <h2 className="font-bold mb-2">내 폴더</h2>
               <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
                 {folders.map((f) => (
+                  <Link key={f.id} href={`/folder/${f.id}`} className="shrink-0 bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><ShapeIcon shape={f.icon} size={18} /></span>
+                    <span className="text-sm font-medium whitespace-nowrap">{f.name} <span className="text-gray-400">{f.saved_places?.[0]?.count ?? 0}</span></span>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+          {subs.length > 0 && (
+            <>
+              <h2 className="font-bold mb-2">구독 폴더</h2>
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
+                {subs.map((f) => (
                   <Link key={f.id} href={`/folder/${f.id}`} className="shrink-0 bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-2">
                     <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><ShapeIcon shape={f.icon} size={18} /></span>
                     <span className="text-sm font-medium whitespace-nowrap">{f.name} <span className="text-gray-400">{f.saved_places?.[0]?.count ?? 0}</span></span>

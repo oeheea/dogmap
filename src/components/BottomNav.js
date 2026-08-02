@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Icon from '@/components/Icon'
 
 const TABS = [
-  { href: '/map', label: '지도', icon: '🗺️' },
-  { href: '/browse', label: '둘러보기', icon: '🧭' },
-  { href: '/', label: '홈', icon: '🏠', center: true },
-  { href: '/walk', label: '산책', icon: '🐾' },
-  { href: '/me', label: '마이', icon: '👤' },
+  { href: '/map', label: '지도', icon: 'map' },
+  { href: '/browse', label: '둘러보기', icon: 'compass' },
+  { href: '/', label: '홈', icon: 'home', center: true },
+  { href: '/walk', label: '산책', icon: 'paw' },
+  { href: '/me', label: '마이', icon: 'user' },
 ]
 
 export default function BottomNav() {
@@ -21,13 +22,15 @@ export default function BottomNav() {
           if (t.center) {
             return (
               <Link key={t.href} href={t.href} className="flex flex-col items-center -mt-5">
-                <span className={`w-12 h-12 rounded-full flex items-center justify-center text-xl border-4 border-white text-white shadow ${active ? 'bg-blue-600' : 'bg-blue-500'}`}>{t.icon}</span>
+                <span className={`w-12 h-12 rounded-full flex items-center justify-center border-4 border-white text-white shadow ${active ? 'bg-blue-600' : 'bg-blue-500'}`}>
+                  <Icon name={t.icon} size={22} />
+                </span>
               </Link>
             )
           }
           return (
-            <Link key={t.href} href={t.href} className={`flex flex-col items-center gap-0.5 text-[10px] ${active ? 'text-blue-600' : 'text-gray-400'}`}>
-              <span className="text-xl leading-none">{t.icon}</span>
+            <Link key={t.href} href={t.href} className={`flex flex-col items-center gap-1 text-[10px] ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+              <Icon name={t.icon} size={22} />
               {t.label}
             </Link>
           )
